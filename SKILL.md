@@ -1,6 +1,6 @@
 ---
 name: project-publisher
-description: Turn the current repository into a ready-to-review LinkedIn build-in-public post. Understands the repo and recent Git work, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and a short demo video, writes a grounded developer-voice post, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
+description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and a short demo video, writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
 argument-hint: "[Day N/30] [publish]"
 ---
 
@@ -28,6 +28,17 @@ user in one or two lines what you concluded at the end of each stage.
   ask people who build similar things? One line each is plenty, or say skip."
   Take whatever comes back as the user's words. If they skip, write the post without a
   personal spark or a closing question; that is the honest version and it is fine.
+- Previous posts live in `~/.project-publisher/posts/`, one file per post (see stage 14 for
+  the format). Read every file there before asking anything. If there are none, this is the
+  first post; skip the rest of this bullet. Otherwise fold a second question into the same
+  message as the one above, listing what exists in one line each:
+  "You've posted about: Day 1 Project Publisher (a skill that writes these posts), Day 2
+  Weather Dashboard (city weather, no API key). Want this one to connect to any of them? If
+  so, how: a callback in the spark, a contrast, a 'built with Day N', or leave them
+  unrelated."
+  Record the answer. "Unrelated" or no answer means no cross-reference at all; do not add one
+  on your own. The log also tells you which first-line shapes and hashtags earlier posts used,
+  so you can avoid repeating them.
 
 ## 2. Preflight
 
@@ -49,11 +60,14 @@ Progressive, not exhaustive. Stop reading when you can answer the questions belo
 1. Tree: `find . -maxdepth 3 -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/.venv/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/coverage/*' -not -path '*/__pycache__/*' | head -150`
 2. High-signal files, if present: `README*`, `CLAUDE.md`, `package.json`, `pyproject.toml`,
    `requirements.txt`, `Dockerfile`, `docker-compose.yml`, `compose.yml`, anything in `docs/`.
-3. Recent work: `git status`, `git log --oneline -10`, `git diff --stat`, `git diff`, and
-   `git show --stat HEAD`. The README describes the project; Git describes today.
+3. Git: `git status`, `git log --oneline -10`, `git diff --stat`, `git diff`, and
+   `git show --stat HEAD`. The README describes what the project is; Git shows you where the
+   deliberate decisions live, which is where the interesting detail usually is. The whole
+   repository is one day's project, so Git is a source for the detail, never the story. Do
+   not carry "what changed" into the post.
    If `git rev-parse --git-dir` and `git rev-parse --git-common-dir` differ, this is a
    worktree: name the branch, and if it has no commits of its own, the diff plus untracked
-   files are today's work. Stay inside the worktree; never read the parent directory.
+   files are part of the project. Stay inside the worktree; never read the parent directory.
 4. Only the source files the diff and README point at as important.
 
 Never open `.env*`, credential files, or key material. See `references/security-guidelines.md`.
@@ -61,17 +75,20 @@ Never open `.env*`, credential files, or key material. See `references/security-
 Write a short brief for yourself, and show it to the user:
 
 ```
-Project:            what it is, one line
-Problem:            what it solves
-Stack:              languages, frameworks, notable libraries
-Recent work:        what the last commits/diff actually changed
-Interesting detail: one design decision, tradeoff, bug, or experiment, with file or commit
+Project:            what it is, one line, as a stranger would need to hear it
+Why (user):         what got the user into this, in their words from stage 1; blank if skipped
+What it does:       you give it X, it gives you Y, in plain words
+Stack:              languages, frameworks, notable libraries (for hashtags and inline mentions)
+Design detail:      one decision, constraint, tradeoff, or surprise, told as a property of the
+                    project, not as a task done today; with file or commit as evidence
+Question (user):    something the user actually wants answered, from stage 1; blank if none
 Worth showing:      which screens or interactions
 Demo workflow:      the one flow that shows the value
 ```
 
 Every line must trace to a file, a commit, or the user's words. No invented metrics, users,
-benchmarks, or features.
+benchmarks, or features. The "Why" and "Question" lines come only from the user; never fill
+them from the code.
 
 ## 4. Find the story
 
@@ -81,12 +98,17 @@ have never seen it. From the brief and the user's stage 1 answer, write down in 
 - the spark: what the user was curious about or annoyed by (from the user; if absent, the
   problem the project solves, in plain words)
 - what it does, as "you give it X, it gives you Y"
-- the moment: the one interesting detail from the brief, told as what surprised or was hard
-- the honest state: what is rough, missing, or broken
+- the moment: the design detail from the brief, told as a property of the project (a
+  constraint, a choice, a surprise), not as something done today
 - the question, only if the user supplied one
+- the first line's shape (rabbit hole, spark, itch, surprise, belief); pick one that the
+  post log shows was not used in the last two posts
+- the connection to an earlier post, only if the user asked for one in stage 1, and in the
+  form they chose; one sentence at most, using the earlier project's name, never its day
+  number alone
 
 If the moment is empty, go back to the diff and commits. If it is still empty, tell the user
-before writing. Vary the first line's shape across posts.
+before writing. Nothing about what is unfinished goes into the post.
 
 ## 5. Run the project
 
@@ -180,11 +202,12 @@ describes. Re-record rather than edit if anything is off.
 
 ## 9. Write the post
 
-Following `references/linkedin-style.md`, write 900–1500 characters along its spine: spark,
-what you built, what it does, the moment, the honest state, the question if there is one,
-Day N/30 if given, hashtags. Plain text, no identifiers or architecture nouns, a stranger
-understands it by the second paragraph. Then run the guide's checklist line by line and fix
-until every line passes. Save only the post text to `output/post.md` and print it.
+Following `references/linkedin-style.md`, write 800–1400 characters along its spine: spark,
+what you built, what it does, the moment, the question if there is one, Day N/30 if given,
+hashtags. Plain text with standard capitalization and punctuation, no identifiers or
+architecture nouns, no "today I" or "what's not done", and a stranger understands it by the
+second or third paragraph. Then run the guide's checklist line by line and fix until every
+line passes. Save only the post text to `output/post.md` and print it.
 
 ## 10. Validate every claim
 
@@ -262,6 +285,33 @@ Only if the user asked to publish in stage 1: verify all five are true, then cli
 5. No LinkedIn security challenge is showing.
 
 If any is false, fall back to stopping for review and say which check failed.
+
+Last, whether or not the user publishes, write the post's record so future runs can refer to
+it. `mkdir -p ~/.project-publisher/posts`, then create
+`~/.project-publisher/posts/YYYY-MM-DD-<project-slug>.md` (today's date, repo folder name
+lowercased) with exactly this shape:
+
+```
+---
+date: YYYY-MM-DD
+day: N            # omit the line if no challenge day was given
+project: <name as used in the post>
+repo: <absolute path>
+one_line: <what it is and does, as a stranger would need it, under 120 chars>
+spark: <the user's stage 1 answer, or "none">
+first_line_shape: <rabbit hole | spark | itch | surprise | belief>
+design_detail: <the moment, one sentence>
+question: <the closing question, or "none">
+related_to: <earlier project names it referenced, or "none">
+medium: <video | screenshots>
+hashtags: <the last line of the post>
+---
+
+<the full post text, verbatim>
+```
+
+If a file for today's date and slug already exists (a re-run), overwrite it. Never edit
+earlier files. Tell the user the record was written and where.
 
 ## Reference files
 

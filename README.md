@@ -19,7 +19,9 @@ Invoke Project Publisher from the project directory
       ↓
 Claude reads the repo, README, and recent Git history
       ↓
-Claude asks what got you into this today, then finds the one interesting detail
+Claude asks what got you into this today and whether to connect it to an earlier post
+      ↓
+Claude finds the one design detail that makes the project interesting
       ↓
 Application runs locally
       ↓
@@ -120,11 +122,20 @@ Both screenshots and video are always captured, even though only one is loaded i
 
 Add `output/` to the project's `.gitignore` if you do not want media committed.
 
+A record of every post is also kept outside the project, in
+`~/.project-publisher/posts/YYYY-MM-DD-<project>.md`: the post text plus what it was about,
+the opener shape, the hashtags, and which earlier projects it referenced. At the start of each
+run the skill reads these and asks whether today's post should connect to any of them and how.
+The default is no connection; every post has to stand alone for a reader who never saw the
+others.
+
 ## Safety
 
 - Prepare-only by default. The final Post button is never clicked unless you ask.
-- Every factual claim in the post is checked against the README, code, config, or Git history.
-  Metrics, user counts, and benchmarks are not invented.
+- Every factual claim in the post is checked against the README, code, config, Git history, or
+  your own words. Metrics, user counts, and benchmarks are not invented, and neither is your
+  motivation: if you skip the "what got you into this" question, the post opens on what the
+  project does rather than on a made-up story.
 - The post, every screenshot, and the complete video are reviewed for secrets, credentials,
   private URLs, personal data, and internal names before LinkedIn is opened. If anything is
   uncertain, Claude stops and asks.
@@ -167,5 +178,13 @@ text, validators, pure subcommands. It never runs the installer and never invoke
 itself, because that may open browsers as you or act on your accounts. If a live demo is worth
 having, it hands you the command and records you running it.
 
-Git worktrees are detected. The branch is named, uncommitted work counts as today's work, and
-the parent directory is never read.
+Git worktrees are detected. The branch is named, uncommitted work counts as part of the
+project, and the parent directory is never read.
+
+## What the post looks like
+
+Each post introduces the project to people who have never seen it: what got you into it, what
+you built, what it does in plain words, and the one design detail that makes it interesting.
+It is not a changelog. Nothing about "what I did today" or "what's not done" goes in, and no
+code identifiers or architecture terms. See `references/linkedin-style.md` for the full
+guide, including a worked bad-versus-good example.
