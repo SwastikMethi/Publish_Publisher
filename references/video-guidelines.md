@@ -67,15 +67,18 @@ browser_resize            1440 × 900 (or the same viewport used for screenshots
 browser_snapshot          once, to learn the roles, names, and text of every target element
 <write the demo snippet from the plan>
 browser_run_code_unsafe   DRY RUN of the snippet, not recorded; fix any selector that fails
-<reset the app to its clean start state; first frame ready>
+browser_navigate          back to the start URL, so the first frame is the clean start state
+browser_wait_for          the start screen's real content, not its heading
 browser_start_video       filename: output/media/demo.webm, size: { width: 1440, height: 900 }
 browser_run_code_unsafe   the same snippet, unchanged
 browser_stop_video
 ```
 
 The snippet is one async function of `page`. Use role and text locators, a pause of about
-1000–1500 ms after each visible change, and a 2000 ms hold at the end. Example shape for a
-five-step plan:
+1000–1500 ms after each visible change, and a 2000 ms hold at the end. After any navigation or
+fetch, wait for the content that proves it finished (a result value, a card, a table row), not
+the page heading, which renders before the data and leaves a spinner in the video. Example
+shape for a five-step plan:
 
 ```js
 async (page) => {
