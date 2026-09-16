@@ -33,7 +33,11 @@ Check via `browser_snapshot` or a quick look, then fix, then capture:
 - No browser developer tools, Playwright overlays, or highlight outlines left on.
 - No focused input with a blinking caret or focus ring drawing the eye, unless typing is the point.
 - No empty or error states. If the app needs data to look good, create safe sample data first.
-- No terminal windows, unless the terminal is the product.
+- No terminal windows, unless the terminal is the product. When it is, capture a fresh
+  Terminal.app window by id with `screencapture -x -o -l<id>` and a plain `$ ` prompt, as
+  described in `references/video-guidelines.md`. Good subjects: the `--help` output, a
+  validator run against a shipped template, a tree of the skill files, one test run passing.
+  No `user@hostname`, no absolute paths under the home directory.
 - No secrets, tokens, emails, private URLs, internal hostnames, or personal data anywhere on screen.
   See `references/security-guidelines.md` for the full list.
 

@@ -127,19 +127,62 @@ Default to none. A polished product demo is a clean interface.
   "Upload a repo", "Generated architecture", "Results". No descriptions unless essential.
 - Do not add both callouts and chapters to a short demo. It starts to look like a test recording.
 
-## Terminal and CLI products
+## Terminal, CLI, and agent products
 
-When the project has no web UI, the terminal is the product. Record it with the macOS built-in
-recorder from a second shell, not with Playwright:
+When the project has no web UI, the terminal is the product. Playwright is not involved; use
+the macOS built-ins. This needs Screen Recording permission for the app that runs Claude Code
+(Terminal, iTerm, VS Code, or the Claude desktop app). Check first:
 
 ```
-screencapture -v -V 40 output/media/demo.mov     # records the screen for 40 seconds
+screencapture -x /tmp/pp-check.png && rm /tmp/pp-check.png
 ```
 
-Or use `screencapture -v -i -V 40` to select a region, so only the terminal window is captured.
-Before recording: clear the terminal, enlarge the font, hide the dock, close notifications,
-and make sure no other window shows private information. The same pacing and never-show rules
-apply. Convert with `ffmpeg` to WebM or MP4 only if LinkedIn rejects the `.mov`.
+"could not create image" means permission is missing. Stop and tell the user which app to allow
+under System Settings › Privacy & Security › Screen Recording. Do not work around it.
+
+**Open a clean demo window and find it.** Terminal.app is scriptable; one `osascript` call
+opens a window, runs the command, and returns the window id and its screen rectangle:
+
+```
+osascript -e 'tell application "Terminal"
+  set w to do script "cd <repo> && export PS1=\"$ \" && clear && <command>"
+  delay 0.5
+  set b to bounds of front window
+  return (id of front window as text) & "|" & (item 1 of b) & "," & (item 2 of b) & "," & ((item 3 of b) - (item 1 of b)) & "," & ((item 4 of b) - (item 2 of b))
+end tell'
+```
+
+Setting `PS1` to a plain `$ ` hides the `user@hostname` prompt, which usually leaks a machine or
+company name. Then:
+
+```
+screencapture -x -o -l<window-id> output/media/screenshots/01-help.png     # one window, no shadow
+screencapture -x -v -V 30 -R<x,y,w,h> output/media/demo.mov                # 30 s of that rectangle
+```
+
+Close the window afterwards with `tell application "Terminal" to close window id <id>`.
+
+**Short deterministic commands** (help text, a validator, a scoring command) are screenshots,
+not video. Nothing moves, so a clip adds nothing.
+
+**A long agent run the user drives.** Give the user the exact command, ask them to run it in
+the demo window, record the whole run with `-V` set generously, then compress to a timelapse
+with the installed ffmpeg so a five-minute run becomes a 30-second clip:
+
+```
+ffmpeg -y -i output/media/demo.mov -vf "setpts=PTS/10" -an -r 30 output/media/demo.mp4
+```
+
+Divide by whatever ratio lands in 15–45 seconds. A watching-the-agent-work timelapse is a
+natural build-in-public video. Review it frame by frame as below; agent output scrolls fast and
+can surface paths, emails, and tokens for a single frame.
+
+**Never run an agent product's own flow yourself** to make a video. It may open browsers as the
+user, write outside the repo, or take actions on their accounts.
+
+Before any terminal recording: hide the dock, close notifications, and make sure no other
+window overlaps the rectangle. The same pacing and never-show rules apply. Convert to MP4 only
+if LinkedIn rejects the `.mov`.
 
 ## Review the recording
 

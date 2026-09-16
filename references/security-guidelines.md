@@ -77,12 +77,18 @@ Do not read or display these to check them, and do not let them appear in media:
 ```
 .env, .env.*, *.local
 browser cookie stores and authentication storage
+Playwright storage-state files: *auth*.yml, *auth*.json, storage-state*.json, state.json
 ~/.ssh, *.pem, *.key
 credential files: ~/.aws/credentials, ~/.netrc, ~/.docker/config.json, keychains
+personal documents: resumes, CVs, candidate profiles, cover letters, anything under Documents/
+the parent directory of a Git worktree, and sibling folders of the repo
 ```
 
 If the app needs a value from one of these to run, ask the user to start it themselves or to
 confirm the value is already set. Do not cat the file to find out.
+
+Terminal captures add two checks: no `user@hostname` in the prompt, and no absolute paths that
+reveal the home directory or an employer's naming scheme. Set a plain prompt before capturing.
 
 ## Before LinkedIn
 

@@ -43,6 +43,9 @@ Progressive, not exhaustive. Stop reading when you can answer the questions belo
    `requirements.txt`, `Dockerfile`, `docker-compose.yml`, `compose.yml`, anything in `docs/`.
 3. Recent work: `git status`, `git log --oneline -10`, `git diff --stat`, `git diff`, and
    `git show --stat HEAD`. The README describes the project; Git describes today.
+   If `git rev-parse --git-dir` and `git rev-parse --git-common-dir` differ, this is a
+   worktree: name the branch, and if it has no commits of its own, the diff plus untracked
+   files are today's work. Stay inside the worktree; never read the parent directory.
 4. Only the source files the diff and README point at as important.
 
 Never open `.env*`, credential files, or key material. See `references/security-guidelines.md`.
@@ -86,7 +89,22 @@ scripts (`npm run dev`, `pnpm dev`, `uvicorn ...`, `streamlit run ...`), config 
   it themselves. Do not read the file.
 - If the project is a CLI, terminal tool, or library with no web UI, skip stages 6–8's browser
   steps and follow the terminal variant in `references/video-guidelines.md` and
-  `references/screenshot-guidelines.md`.
+  `references/screenshot-guidelines.md`. Terminal capture needs macOS Screen Recording
+  permission for the app running Claude Code; check it works with
+  `screencapture -x /tmp/pp-check.png` before planning around it, and if it fails, tell the
+  user which app to allow in System Settings › Privacy & Security › Screen Recording.
+- If the project is an agent product (a `SKILL.md` at the root or one level down, a
+  `.claude/skills/` or `.codex/` directory, an installer that copies into a skills folder, or a
+  README that says to invoke it from Claude Code or Codex), treat "run" narrowly:
+  - Run only its deterministic layer: `--help`, pure subcommands, validators against the
+    templates it ships. Nothing that opens a browser, hits a network, or reads personal files.
+  - Never run its installer. It writes outside the repo.
+  - Do not invoke the agent flow yourself. If a live demo of it is worth having, hand the
+    user the exact command to run in a second terminal and record that, per the terminal
+    variant. Otherwise the post shows the CLI layer and the design, which is usually the
+    interesting part anyway.
+  - If the target is this skill itself, the current session is the demo. Ask whether the user
+    started a screen recording before invoking; if not, offer to pause so they can.
 
 ## 6. Explore with Playwright MCP (not recorded)
 
@@ -158,8 +176,9 @@ Decide between a screenshot post (2–4 images) and a video post (one demo) by a
 interesting part a state, or a transition? Static screens that explain themselves favour
 screenshots. Interaction, transformation, or something appearing over time favours video.
 Also weigh clarity, uniqueness, information density, and professional look. Do not assume video
-wins. State the choice and the reason in a short paragraph. If it is a genuine toss-up, ask the
-user before continuing.
+wins. For terminal and agent products, screenshots are the default; use a clip only if
+something visibly happens in it. State the choice and the reason in a short paragraph. If it is
+a genuine toss-up, ask the user before continuing.
 
 ## 13. Prepare LinkedIn
 

@@ -150,8 +150,22 @@ project-publisher/
 `SKILL.md` is deliberately short. The reference files hold the detail and are read only at the
 stage that needs them.
 
-## Terminal and CLI projects
+## Terminal, CLI, and agent projects
 
-When a project has no web UI, the terminal is the product. The skill records it with the macOS
-built-in `screencapture -v` instead of Playwright, applies the same pacing and privacy rules, and
-still uses Playwright for the LinkedIn step.
+When a project has no web UI, the terminal is the product. The skill opens a clean Terminal.app
+window through AppleScript, gives it a plain prompt, and captures that window by id with the
+macOS built-in `screencapture`. Short deterministic commands become screenshots. A long agent
+run that you drive in that window is recorded whole and compressed into a timelapse with
+`ffmpeg`. Playwright is still used for the LinkedIn step.
+
+This needs Screen Recording permission for the app that runs Claude Code. The skill checks and
+tells you which app to allow if the capture fails.
+
+For agent products, meaning skills, Codex or Claude Code pipelines, and anything with an
+installer that copies into a skills folder, the skill runs only the deterministic layer: help
+text, validators, pure subcommands. It never runs the installer and never invokes the agent flow
+itself, because that may open browsers as you or act on your accounts. If a live demo is worth
+having, it hands you the command and records you running it.
+
+Git worktrees are detected. The branch is named, uncommitted work counts as today's work, and
+the parent directory is never read.
