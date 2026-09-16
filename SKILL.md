@@ -91,8 +91,11 @@ scripts (`npm run dev`, `pnpm dev`, `uvicorn ...`, `streamlit run ...`), config 
   steps and follow the terminal variant in `references/video-guidelines.md` and
   `references/screenshot-guidelines.md`. Terminal capture needs macOS Screen Recording
   permission for the app running Claude Code; check it works with
-  `screencapture -x /tmp/pp-check.png` before planning around it, and if it fails, tell the
-  user which app to allow in System Settings › Privacy & Security › Screen Recording.
+  `screencapture -x /tmp/pp-check.png && rm /tmp/pp-check.png` before planning around it.
+  If it fails, name the app to allow in System Settings › Privacy & Security › Screen
+  Recording: `$TERM_PROGRAM` says which (`vscode`, `Apple_Terminal`, `iTerm.app`), and if it
+  is unset, the Claude desktop app. Ask the user to allow it and restart that app, then
+  continue; do not fall back to Playwright for a terminal product.
 - If the project is an agent product (a `SKILL.md` at the root or one level down, a
   `.claude/skills/` or `.codex/` directory, an installer that copies into a skills folder, or a
   README that says to invoke it from Claude Code or Codex), treat "run" narrowly:
