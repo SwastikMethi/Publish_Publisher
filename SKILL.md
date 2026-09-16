@@ -116,8 +116,14 @@ Walk the navigation and the features the brief called interesting. Interact only
 controls. Never click anything labelled delete, remove, purchase, pay, checkout, logout,
 submit where the effect is irreversible, or anything pointing at a production system.
 
-If you take screenshots to see pages while exploring, put them in `output/media/explore/` and
-delete that folder before stage 7, so the screenshots folder holds only the final set.
+Every tool call costs real time, so explore with snapshots, not screenshots. `browser_snapshot`
+tells you what is on a page; a screenshot only tells you what it looks like, and you will take
+the real ones in stage 7 anyway. Take an exploration screenshot only when layout itself is the
+question, put it in `output/media/explore/`, and delete that folder before stage 7. Do not
+`browser_evaluate` to inspect storage or state unless the demo depends on it.
+
+Cap: about 15 browser calls for exploration. Typical shape: navigate, snapshot, one click and
+snapshot per main screen, one try of the story's feature. Then write the plan.
 
 If the app shows a bug (NaN, undefined, a control that does nothing), note it for the user in
 one line and move on. Do not debug it, do not read source to explain it, and do not edit the
@@ -132,9 +138,12 @@ clean end state. Show it to the user in a few lines.
 
 ## 7. Capture screenshots
 
-Read `references/screenshot-guidelines.md`, then capture 2–4 shots at 1440 × 900 into
-`output/media/screenshots/NN-slug.png`. Open each with the Read tool and reject any that are
-blurry, duplicated, half-loaded, or show anything from the security list. Retake as needed.
+Read `references/screenshot-guidelines.md`. Decide the 2–4 shots and their slugs up front,
+from the demo plan, before touching the browser; do not discover them by taking and deleting.
+Then for each: set up the state, capture at 1440 × 900 into
+`output/media/screenshots/NN-slug.png`, and move on. Open all of them with the Read tool in one
+batch at the end and reject any that are blurry, duplicated, half-loaded, or show anything from
+the security list. Retake only the rejects.
 
 ## 8. Record the demo video
 

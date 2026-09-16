@@ -54,8 +54,8 @@ Use a short lowercase slug that says what the shot shows.
 
 ## After capture
 
-Open every screenshot with the Read tool and look at it. Do not trust that the capture matched
-the snapshot. Check for:
+Open every screenshot with the Read tool, all in one batch after the last capture rather than
+one at a time between captures. Do not trust that the capture matched the snapshot. Check for:
 
 - cut-off content at the edges
 - a spinner or toast that appeared between snapshot and capture
