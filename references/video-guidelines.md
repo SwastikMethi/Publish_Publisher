@@ -80,6 +80,10 @@ fetch, wait for the content that proves it finished (a result value, a card, a t
 the page heading, which renders before the data and leaves a spinner in the video. Example
 shape for a five-step plan:
 
+The recording starts several seconds before the snippet's first line runs (tool round trip),
+so the snippet must not open with a wait. Its first action should happen immediately, and the
+final hold should be about 2000 ms, no longer. Anything past that is dead time to trim.
+
 ```js
 async (page) => {
   await page.getByRole('textbox', { name: /city/i }).click();
@@ -186,9 +190,16 @@ if LinkedIn rejects the `.mov`.
 
 ## Review the recording
 
-After stopping, watch the whole file, not a sample of it. Open it with `open output/media/demo.webm`
-and watch it through, or if a player is not available, extract frames with the installed ffmpeg
-(`ffmpeg -i output/media/demo.webm -vf fps=1 output/media/frames/%03d.png`) and Read each frame.
+After stopping, review the whole file, not a sample of it. Tile it into contact sheets with the
+installed ffmpeg, one frame every two seconds, nine frames per sheet, and Read each sheet:
+
+```
+mkdir -p output/media/frames
+ffmpeg -v error -y -i output/media/demo.webm -vf "fps=1/2,scale=480:-1,tile=3x3" output/media/frames/sheet%d.png
+```
+
+A 40-second video is three sheets, three Read calls. Do not extract one PNG per second and
+read them individually; that is forty images and takes longer than the recording did.
 
 Check:
 
@@ -202,6 +213,8 @@ Check:
 Delete the frames folder after review. Re-record if any check fails.
 
 If the only problem is dead time at the very start or very end, one trim with the installed
-ffmpeg is acceptable instead of a re-record:
-`ffmpeg -y -ss 3 -i output/media/demo.webm -t 30 -c copy output/media/demo-trimmed.webm`
-Then review the trimmed file the same way. Anything else, re-record.
+ffmpeg is acceptable instead of a re-record. Read the start and end offsets off the contact
+sheets (each tile is two seconds), then:
+`ffmpeg -y -ss <start> -i output/media/demo.webm -t <length> -c copy output/media/demo-trimmed.webm`
+Move the trimmed file over the original so `output/media/demo.webm` is the one that ships.
+Re-tile it once to confirm. Anything else, re-record.

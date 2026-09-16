@@ -150,7 +150,7 @@ browser_stop_video
 
 The recording is wall-clock, so the snippet controls the pacing, not tool round trips. Target
 15–45 seconds. Default to no annotations; add a pointer or at most two or three short
-chapter cards only if they help a viewer follow. Review the whole recording as the guideline
+chapter cards only if they help a viewer follow. Review the recording via ffmpeg contact sheets as the guideline
 describes. Re-record rather than edit if anything is off.
 
 ## 9. Write the post
