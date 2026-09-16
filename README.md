@@ -19,7 +19,7 @@ Invoke Project Publisher from the project directory
       ↓
 Claude reads the repo, README, and recent Git history
       ↓
-Claude picks the story angle and the one interesting detail
+Claude asks what got you into this today, then finds the one interesting detail
       ↓
 Application runs locally
       ↓
@@ -141,7 +141,7 @@ project-publisher/
 ├── agents/
 │   └── openai.yaml                metadata so OpenAI-style agents can also discover the skill
 └── references/
-    ├── linkedin-style.md          voice, limits, banned phrases, story angles
+    ├── linkedin-style.md          audience, post spine, first line, voice, checklist
     ├── screenshot-guidelines.md   what to capture and how to check it
     ├── video-guidelines.md        planning, recording, and reviewing the demo
     └── security-guidelines.md     what must never be posted

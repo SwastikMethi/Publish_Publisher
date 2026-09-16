@@ -20,6 +20,14 @@ user in one or two lines what you concluded at the end of each stage.
   If not given, do not invent one and do not ask; write the post without it.
 - Publish mode: only if the user explicitly said to publish or post it. Default is prepare-only.
 - Any extra context the user gave (what they built, what to highlight) outranks what you infer.
+- The post needs three things the repository cannot supply: what got the user into this
+  today, how it felt or how long it took, and whether there is a question they actually want
+  answered. If the request did not include them, ask once, in one short message, before
+  doing anything else:
+  "Before I start: what got you into this one today, and is there anything you'd want to
+  ask people who build similar things? One line each is plenty, or say skip."
+  Take whatever comes back as the user's words. If they skip, write the post without a
+  personal spark or a closing question; that is the honest version and it is fine.
 
 ## 2. Preflight
 
@@ -65,12 +73,20 @@ Demo workflow:      the one flow that shows the value
 Every line must trace to a file, a commit, or the user's words. No invented metrics, users,
 benchmarks, or features.
 
-## 4. Choose the story
+## 4. Find the story
 
-Read `references/linkedin-style.md`. Pick one angle from it (builder, problem→solution,
-experiment, technical discovery, engineering challenge, behind the scenes) based on what the
-brief says is genuinely interesting. Name the angle and the interesting detail in one line.
-Vary the angle across projects; do not default to the same one.
+Read `references/linkedin-style.md`. Every post introduces a brand-new project to people who
+have never seen it. From the brief and the user's stage 1 answer, write down in one line each:
+
+- the spark: what the user was curious about or annoyed by (from the user; if absent, the
+  problem the project solves, in plain words)
+- what it does, as "you give it X, it gives you Y"
+- the moment: the one interesting detail from the brief, told as what surprised or was hard
+- the honest state: what is rough, missing, or broken
+- the question, only if the user supplied one
+
+If the moment is empty, go back to the diff and commits. If it is still empty, tell the user
+before writing. Vary the first line's shape across posts.
 
 ## 5. Run the project
 
@@ -164,9 +180,11 @@ describes. Re-record rather than edit if anything is off.
 
 ## 9. Write the post
 
-Following `references/linkedin-style.md`, write 900–1600 characters in the chosen angle with
-the interesting detail from the brief. Include the challenge day only if given. Save to
-`output/post.md` and print it.
+Following `references/linkedin-style.md`, write 900–1500 characters along its spine: spark,
+what you built, what it does, the moment, the honest state, the question if there is one,
+Day N/30 if given, hashtags. Plain text, no identifiers or architecture nouns, a stranger
+understands it by the second paragraph. Then run the guide's checklist line by line and fix
+until every line passes. Save only the post text to `output/post.md` and print it.
 
 ## 10. Validate every claim
 
@@ -247,7 +265,7 @@ If any is false, fall back to stopping for review and say which check failed.
 
 ## Reference files
 
-- `references/linkedin-style.md` — voice, limits, banned phrases, angles, default shape. Read at stage 4 and 9.
+- `references/linkedin-style.md` — audience, spine, first line, voice, formatting, banned list, checklist. Read at stage 4 and 9.
 - `references/screenshot-guidelines.md` — count, viewport, pre-capture checklist, naming, review. Read at stage 7.
 - `references/video-guidelines.md` — plan, pacing, never-show list, Playwright recording steps, terminal variant, review. Read at stage 8.
 - `references/security-guidelines.md` — what to look for, where, never-open list, final checklist. Read at stage 3 and 11.
