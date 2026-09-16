@@ -1,0 +1,6 @@
+interface:
+  display_name: "Project Publisher"
+  short_description: "Turn the current repo into a LinkedIn build-in-public post with screenshots and a demo video, ready for review."
+  default_prompt: "Use $project-publisher to understand this repository, run it, capture screenshots and a demo video with Playwright MCP, write the LinkedIn post, and prepare the LinkedIn composer for human review without publishing."
+policy:
+  allow_implicit_invocation: true
