@@ -58,8 +58,9 @@ The Playwright MCP server exposes native recording when started with `--caps=dev
 ```
 browser_resize            1440 × 900 (or the same viewport used for screenshots)
 <put the app in its clean start state, first frame ready>
-browser_start_video       filename: output/media/demo.webm
-<execute the demo plan, step by step>
+browser_snapshot          once, to collect the element refs for every step of the plan
+browser_start_video       filename: output/media/demo.webm, size: { width: 1440, height: 900 }
+<execute the demo plan, step by step, back to back>
 browser_stop_video
 ```
 
@@ -67,9 +68,15 @@ Notes:
 
 - `browser_start_video` accepts a `filename`; relative paths resolve against the workspace
   root. Always pass it so the file lands in `output/media/`.
+- Always pass `size`. Without it the recording is 800 × 600 no matter what the viewport is,
+  and the page is scaled down.
+- The recording runs on wall-clock time. Every second you spend reasoning between tool calls
+  is dead time in the video. Decide every selector and ref from the snapshot before
+  `browser_start_video`, then issue the plan's calls one after another with no re-snapshotting
+  and no deliberation. A 6-step plan should be 6 to 12 tool calls total.
+- If a click fails during recording, stop, delete the file, fix the selector, and record again.
+  Do not retry inside the recording.
 - Keep the app in its clean start state before starting, so the first frame is already good.
-- Do not call `browser_snapshot` more than needed during recording. It does not appear on
-  video, but it slows the pacing.
 - `browser_start_recording` is a different tool that records actions as code, not pixels.
   Do not use it for the demo.
 - Output is WebM. LinkedIn accepts it. Convert with the installed `ffmpeg` only if LinkedIn
@@ -119,3 +126,8 @@ Check:
 - The final frame holds long enough to read.
 
 Delete the frames folder after review. Re-record if any check fails.
+
+If the only problem is dead time at the very start or very end, one trim with the installed
+ffmpeg is acceptable instead of a re-record:
+`ffmpeg -y -ss 3 -i output/media/demo.webm -t 30 -c copy output/media/demo-trimmed.webm`
+Then review the trimmed file the same way. Anything else, re-record.

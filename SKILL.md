@@ -105,15 +105,17 @@ blurry, duplicated, half-loaded, or show anything from the security list. Retake
 
 ## 8. Record the demo video
 
-Read `references/video-guidelines.md`. Put the app back in its clean start state, then:
+Read `references/video-guidelines.md`. Put the app back in its clean start state, take one
+snapshot to collect the refs for every planned step, then:
 
 ```
-browser_start_video   filename: output/media/demo.webm
-<execute the demo plan, pausing about one second after each visible change>
+browser_start_video   filename: output/media/demo.webm, size: { width: 1440, height: 900 }
+<execute the demo plan back to back, pausing about one second after each visible change>
 browser_stop_video
 ```
 
-Target 15–45 seconds. Default to no annotations; add a pointer or at most two or three short
+The recording is wall-clock: thinking between calls becomes dead time on screen, so decide
+everything before starting and do not re-snapshot mid-recording. Target 15–45 seconds. Default to no annotations; add a pointer or at most two or three short
 chapter cards only if they help a viewer follow. Review the whole recording as the guideline
 describes. Re-record rather than edit if anything is off.
 
