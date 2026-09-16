@@ -6,7 +6,7 @@ build-in-public post, with screenshots and a short demo video already loaded int
 Built as Day 1 of a 30-day challenge: one project a day, each posted to LinkedIn. This is the
 tool that publishes the other 29.
 
-There is no application here. The skill is a set of instructions that Claude Code follows using
+There is no application here. The skill is a set of instructions that Claude Code or Codex follows using
 capabilities it already has: reading the repository, running Git and shell commands, driving a
 browser through Playwright MCP, and writing. No Python, no backend, no custom automation.
 
@@ -44,29 +44,47 @@ Stops. You review and press Post.
 
 ## Requirements
 
-- Claude Code.
+- Claude Code or Codex.
 - Playwright MCP with the `devtools` capability enabled, which provides video recording.
+  The installer registers it.
 - A browser Playwright can launch (Chromium is downloaded on first use).
 - A LinkedIn account. You log in once in the Playwright browser window; the profile is kept
   between runs so you are not asked again.
 
 ## Install
 
-Clone this repository and symlink it into your personal skills directory:
+Clone this repository and run the installer. It works for Claude Code and Codex:
 
 ```bash
 git clone <this repo> ~/Projects/Project_Publisher
-ln -s ~/Projects/Project_Publisher ~/.claude/skills/project-publisher
+cd ~/Projects/Project_Publisher
+./install.sh
 ```
 
-Register Playwright MCP once, at user scope, with video enabled and a fixed browser profile so
-your LinkedIn login carries across projects:
+With no flags it installs for every agent whose CLI is on your PATH. Use `--claude` or
+`--codex` to pick one. For each agent it does two things:
+
+1. Symlinks this repository into the agent's skills directory (`~/.claude/skills` or
+   `~/.codex/skills`), so `git pull` updates the skill in place.
+2. Registers a Playwright MCP server named `playwright` at user scope with video recording
+   enabled and a fixed browser profile, so your LinkedIn login carries across projects.
+
+If an agent already has a `playwright` server configured differently, the installer shows it
+and asks before replacing it. Pass `--force` to replace without asking, or `--skip-mcp` to
+link the skill and leave MCP alone. Running it again is safe; it changes nothing that is
+already correct.
+
+To do it by hand instead:
 
 ```bash
+ln -s ~/Projects/Project_Publisher ~/.claude/skills/project-publisher
 claude mcp add --scope user playwright -- npx @playwright/mcp@latest --caps=devtools --user-data-dir ~/.playwright-mcp/project-publisher --output-dir ~/.playwright-mcp/output
 ```
 
-Start a new Claude Code session after both steps.
+For Codex, replace the first line's target with `~/.codex/skills/project-publisher` and the
+second with `codex mcp add playwright -- npx @playwright/mcp@latest ...` (same arguments).
+
+Start a new session in the agent after installing.
 
 Notes:
 
@@ -149,6 +167,7 @@ others.
 project-publisher/
 ├── SKILL.md                       the orchestration instructions Claude follows
 ├── README.md
+├── install.sh                     symlinks the skill and registers Playwright MCP for Claude Code and Codex
 ├── agents/
 │   └── openai.yaml                metadata so OpenAI-style agents can also discover the skill
 └── references/

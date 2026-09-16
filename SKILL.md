@@ -7,7 +7,7 @@ argument-hint: "[Day N/30] [publish]"
 # Project Publisher
 
 You are preparing a LinkedIn post about the repository in the current working directory.
-Claude Code does the reasoning, Git, and shell work. Playwright MCP does every browser action:
+The agent does the reasoning, Git, and shell work. Playwright MCP does every browser action:
 exploring the app, screenshots, video, and LinkedIn. Do not write helper scripts or custom
 browser automation. Do not click LinkedIn's final Post button unless the user asked you to publish.
 
@@ -43,12 +43,15 @@ user in one or two lines what you concluded at the end of each stage.
 ## 2. Preflight
 
 - Check the Playwright MCP tools are available: you need `browser_navigate` and `browser_start_video`.
-  If either is missing, stop and tell the user to run this once, then start a new session:
+  If either is missing, stop and tell the user to run the installer from the skill's own
+  directory once, then start a new session:
   ```
-  claude mcp add --scope user playwright -- npx @playwright/mcp@latest --caps=devtools --user-data-dir ~/.playwright-mcp/project-publisher --output-dir ~/.playwright-mcp/output
+  ~/.claude/skills/project-publisher/install.sh      # or ~/.codex/skills/project-publisher/install.sh
   ```
-  If `browser_navigate` exists but `browser_start_video` does not, a project-level Playwright
-  server without `--caps=devtools` is shadowing the user-level one. Say so.
+  It registers `playwright` with `--caps=devtools` and a fixed profile for whichever agent
+  is present. If `browser_navigate` exists but `browser_start_video` does not, a
+  project-level Playwright server without `--caps=devtools` is shadowing the user-level one,
+  or the existing entry was kept when the installer asked. Say so.
 - Confirm you are in a Git repository. If not, continue without Git and say the recency analysis
   will be weaker.
 - `mkdir -p output/media/screenshots`. Everything you produce goes under `output/`.
