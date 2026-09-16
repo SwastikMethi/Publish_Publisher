@@ -61,7 +61,7 @@ Register Playwright MCP once, at user scope, with video enabled and a fixed brow
 your LinkedIn login carries across projects:
 
 ```bash
-claude mcp add --scope user playwright -- npx @playwright/mcp@latest --caps=devtools --user-data-dir ~/.playwright-mcp/project-publisher
+claude mcp add --scope user playwright -- npx @playwright/mcp@latest --caps=devtools --user-data-dir ~/.playwright-mcp/project-publisher --output-dir ~/.playwright-mcp/output
 ```
 
 Start a new Claude Code session after both steps.
@@ -71,6 +71,7 @@ Notes:
 - If a project already has its own `playwright` MCP server configured at project scope, it
   shadows the user-scope one. If that project entry lacks `--caps=devtools`, video tools will be
   missing there. The skill detects this and tells you.
+- `--output-dir` keeps Playwright's own page snapshots out of your project. Screenshots and video still go to `output/` because the skill passes explicit filenames.
 - A persistent browser profile can be used by one browser at a time. If Playwright fails to
   launch, close other Playwright MCP browsers first.
 

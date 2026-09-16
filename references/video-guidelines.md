@@ -55,13 +55,41 @@ If any of these appear in the recording, re-record. Do not upload it.
 
 The Playwright MCP server exposes native recording when started with `--caps=devtools`.
 
+The recording runs on wall-clock time, and every tool round trip costs several seconds of
+model latency. Driving the demo one click per tool call produces a slow, stuttering video with
+dead time between actions. So the demo is executed as one Playwright snippet passed inline to
+`browser_run_code_unsafe`, which runs it inside the browser at real pacing. The snippet is
+typed into the tool call, never saved to the skill or the project; it is the same clicks Claude
+would make, batched.
+
 ```
 browser_resize            1440 × 900 (or the same viewport used for screenshots)
-<put the app in its clean start state, first frame ready>
-browser_snapshot          once, to collect the element refs for every step of the plan
+browser_snapshot          once, to learn the roles, names, and text of every target element
+<write the demo snippet from the plan>
+browser_run_code_unsafe   DRY RUN of the snippet, not recorded; fix any selector that fails
+<reset the app to its clean start state; first frame ready>
 browser_start_video       filename: output/media/demo.webm, size: { width: 1440, height: 900 }
-<execute the demo plan, step by step, back to back>
+browser_run_code_unsafe   the same snippet, unchanged
 browser_stop_video
+```
+
+The snippet is one async function of `page`. Use role and text locators, a pause of about
+1000–1500 ms after each visible change, and a 2000 ms hold at the end. Example shape for a
+five-step plan:
+
+```js
+async (page) => {
+  await page.getByRole('textbox', { name: /city/i }).click();
+  await page.waitForTimeout(1200);
+  await page.getByText('Tokyo', { exact: true }).click();
+  await page.waitForTimeout(1500);
+  await page.getByRole('textbox', { name: /city/i }).fill('Berlin');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('text=Berlin, Germany');
+  await page.waitForTimeout(1500);
+  await page.getByRole('link', { name: 'Forecast' }).click();
+  await page.waitForTimeout(2000);
+}
 ```
 
 Notes:
@@ -70,12 +98,12 @@ Notes:
   root. Always pass it so the file lands in `output/media/`.
 - Always pass `size`. Without it the recording is 800 × 600 no matter what the viewport is,
   and the page is scaled down.
-- The recording runs on wall-clock time. Every second you spend reasoning between tool calls
-  is dead time in the video. Decide every selector and ref from the snapshot before
-  `browser_start_video`, then issue the plan's calls one after another with no re-snapshotting
-  and no deliberation. A 6-step plan should be 6 to 12 tool calls total.
-- If a click fails during recording, stop, delete the file, fix the selector, and record again.
-  Do not retry inside the recording.
+- The dry run is mandatory. It costs one tool call and catches every bad selector before
+  the recording. A snippet that failed in the dry run is fixed and dry-run again, not recorded.
+- If the snippet still fails during the recording, `browser_stop_video`, delete the file, fix,
+  dry-run, and record again. Do not patch the failure with extra tool calls mid-recording.
+- Nothing happens between `browser_start_video` and `browser_run_code_unsafe` except the
+  call itself; do not snapshot or reason in between.
 - Keep the app in its clean start state before starting, so the first frame is already good.
 - `browser_start_recording` is a different tool that records actions as code, not pixels.
   Do not use it for the demo.

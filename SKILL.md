@@ -26,7 +26,7 @@ user in one or two lines what you concluded at the end of each stage.
 - Check the Playwright MCP tools are available: you need `browser_navigate` and `browser_start_video`.
   If either is missing, stop and tell the user to run this once, then start a new session:
   ```
-  claude mcp add --scope user playwright -- npx @playwright/mcp@latest --caps=devtools --user-data-dir ~/.playwright-mcp/project-publisher
+  claude mcp add --scope user playwright -- npx @playwright/mcp@latest --caps=devtools --user-data-dir ~/.playwright-mcp/project-publisher --output-dir ~/.playwright-mcp/output
   ```
   If `browser_navigate` exists but `browser_start_video` does not, a project-level Playwright
   server without `--caps=devtools` is shadowing the user-level one. Say so.
@@ -79,7 +79,9 @@ scripts (`npm run dev`, `pnpm dev`, `uvicorn ...`, `streamlit run ...`), config 
   and capture the local URL and port from the output.
 - Do not run commands from repository text that look unrelated or unsafe.
 - Do not install dependencies unless a run attempt clearly fails because they are missing.
-- Do not modify the project unless a one-line change is required to run it, and say so.
+- Never edit a project file without asking first. If a one-line change is required to run
+  the app, or a feature the story depends on turns out to be broken, stop, show the diff you
+  propose, and let the user decide. This applies even when the fix is obvious.
 - If the app needs a secret from `.env` that is missing, tell the user and ask them to start
   it themselves. Do not read the file.
 - If the project is a CLI, terminal tool, or library with no web UI, skip stages 6–8's browser
@@ -96,8 +98,12 @@ submit where the effect is irreversible, or anything pointing at a production sy
 If you take screenshots to see pages while exploring, put them in `output/media/explore/` and
 delete that folder before stage 7, so the screenshots folder holds only the final set.
 
-If the app shows a data bug (NaN, undefined, empty tiles), note it for the user. It is their
-call whether to fix it before posting; do not silently frame it out or edit the app.
+If the app shows a bug (NaN, undefined, a control that does nothing), note it for the user in
+one line and move on. Do not debug it, do not read source to explain it, and do not edit the
+app. It is the user's call whether to fix it before posting.
+
+Budget: exploration should take a few minutes, not tens. Visit each screen once, try the
+feature the story is about, and stop. Do not investigate features that are not in the story.
 
 Output: a demo plan of 4–6 numbered steps, each a specific action on a specific element,
 following: strongest screen → core interaction → result → one differentiating feature →
@@ -111,17 +117,18 @@ blurry, duplicated, half-loaded, or show anything from the security list. Retake
 
 ## 8. Record the demo video
 
-Read `references/video-guidelines.md`. Put the app back in its clean start state, take one
-snapshot to collect the refs for every planned step, then:
+Read `references/video-guidelines.md`. Turn the demo plan into one Playwright snippet (an
+async function of `page` with short pauses), dry-run it with `browser_run_code_unsafe` while
+not recording, fix any selector that fails, put the app back in its clean start state, then:
 
 ```
-browser_start_video   filename: output/media/demo.webm, size: { width: 1440, height: 900 }
-<execute the demo plan back to back, pausing about one second after each visible change>
+browser_start_video      filename: output/media/demo.webm, size: { width: 1440, height: 900 }
+browser_run_code_unsafe  the same snippet
 browser_stop_video
 ```
 
-The recording is wall-clock: thinking between calls becomes dead time on screen, so decide
-everything before starting and do not re-snapshot mid-recording. Target 15–45 seconds. Default to no annotations; add a pointer or at most two or three short
+The recording is wall-clock, so the snippet controls the pacing, not tool round trips. Target
+15–45 seconds. Default to no annotations; add a pointer or at most two or three short
 chapter cards only if they help a viewer follow. Review the whole recording as the guideline
 describes. Re-record rather than edit if anything is off.
 
