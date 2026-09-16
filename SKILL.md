@@ -93,6 +93,12 @@ Walk the navigation and the features the brief called interesting. Interact only
 controls. Never click anything labelled delete, remove, purchase, pay, checkout, logout,
 submit where the effect is irreversible, or anything pointing at a production system.
 
+If you take screenshots to see pages while exploring, put them in `output/media/explore/` and
+delete that folder before stage 7, so the screenshots folder holds only the final set.
+
+If the app shows a data bug (NaN, undefined, empty tiles), note it for the user. It is their
+call whether to fix it before posting; do not silently frame it out or edit the app.
+
 Output: a demo plan of 4–6 numbered steps, each a specific action on a specific element,
 following: strongest screen → core interaction → result → one differentiating feature →
 clean end state. Show it to the user in a few lines.
@@ -178,7 +184,7 @@ Take one screenshot of the finished composer to `output/media/composer.png` for 
 
 ## 14. Stop for review
 
-Do not click Post. Leave the browser open and print:
+Do not click Post. Stop any dev server you started in stage 5. Leave the browser open and print:
 
 ```
 The LinkedIn post is prepared and ready for review.
