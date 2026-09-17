@@ -54,9 +54,13 @@ user in one or two lines what you concluded at the end of each stage.
   is present. If `browser_navigate` exists but `browser_start_video` does not, a
   project-level Playwright server without `--caps=devtools` is shadowing the user-level one,
   or the existing entry was kept when the installer asked. Say so.
-- Check `ffmpeg`, `ffprobe`, and `tesseract` are on PATH (`which ffmpeg ffprobe tesseract`).
-  The video edit and the OCR redaction need all three. If any is missing, tell the user to
-  run `brew install ffmpeg tesseract` and continue with screenshots only for this run.
+- Check `ffmpeg`, `ffprobe`, and `tesseract` are on PATH and that ffmpeg has the `drawtext`
+  filter: `which ffmpeg ffprobe tesseract && ffmpeg -hide_banner -filters | grep -q drawtext`.
+  The video edit needs `drawtext` for title cards and captions; Homebrew's plain `ffmpeg`
+  formula is built without it. If anything is missing, tell the user to run
+  `brew install ffmpeg-full tesseract` and put `/opt/homebrew/opt/ffmpeg-full/bin` first on
+  PATH (the installer prints the exact line), then continue with screenshots only for this
+  run.
 - Note whether `<skill dir>/assets/music/` holds any audio file besides the README. If not,
   the video will be silent; say so once, here, and do not stop for it.
 - Confirm you are in a Git repository. If not, continue without Git and say the recency analysis

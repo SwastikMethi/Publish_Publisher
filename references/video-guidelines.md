@@ -212,7 +212,9 @@ the README, leave `music` out and tell the user the video is silent.
 ## Pass 3: redact, render, verify
 
 Three scripts calls, all deterministic, all in the skill's `scripts/` directory. They need
-`ffmpeg`, `ffprobe`, and `tesseract` on PATH (`brew install ffmpeg tesseract`).
+`ffmpeg` with the `drawtext` filter, `ffprobe`, and `tesseract` on PATH. On Homebrew:
+`brew install ffmpeg-full tesseract`, then `export PATH=/opt/homebrew/opt/ffmpeg-full/bin:$PATH`.
+The plain `ffmpeg` formula lacks `drawtext` and every render fails at the title card.
 
 **Redact every terminal scene.** OCR the source window and produce blur boxes for anything
 on the never-show list. Pass the user's login name so it is caught even when OCR misreads it:

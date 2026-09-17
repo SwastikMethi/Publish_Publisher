@@ -122,7 +122,38 @@ install_codex() {
   echo "  mcp:   registered playwright (--caps=devtools)"
 }
 
+# check_media_tools: the video edit needs ffmpeg with drawtext, ffprobe, and tesseract.
+# Homebrew's plain ffmpeg formula is built without drawtext; ffmpeg-full has it but is
+# keg-only, so it must be put on PATH by hand.
+check_media_tools() {
+  echo "Media tools"
+  local missing=()
+  local full=/opt/homebrew/opt/ffmpeg-full/bin
+  command -v tesseract >/dev/null || missing+=(tesseract)
+  # Buffer the filter list first: with pipefail on, grep -q closing the pipe early would
+  # make ffmpeg exit 141 and fail the whole check even when drawtext is present.
+  has_drawtext() { local f; f=$("$1" -hide_banner -filters 2>/dev/null || true); grep -qE '^ *[A-Z.]+ +drawtext ' <<<"$f"; }
+  if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null && has_drawtext ffmpeg; then
+    echo "  ffmpeg: ok (drawtext present)"
+  elif [[ -x "$full/ffmpeg" ]] && has_drawtext "$full/ffmpeg"; then
+    echo "  ffmpeg: ffmpeg-full is installed but not first on PATH. Add this to your shell profile:" >&2
+    echo "          export PATH=$full:\$PATH" >&2
+  else
+    missing+=(ffmpeg-full)
+  fi
+  if ((${#missing[@]} > 0)); then
+    echo "  missing: ${missing[*]}. Install with:" >&2
+    echo "          brew install ${missing[*]}" >&2
+    [[ " ${missing[*]} " == *" ffmpeg-full "* ]] && echo "          export PATH=$full:\$PATH" >&2
+    echo "  Without these the skill still runs, but posts get screenshots only, no video." >&2
+  else
+    echo "  tesseract: ok"
+  fi
+}
+
 mkdir -p "$profile_dir" "$output_dir" "$HOME/.project-publisher/posts"
+
+check_media_tools
 
 for target in "${targets[@]}"; do
   case "$target" in

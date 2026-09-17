@@ -53,12 +53,19 @@ Stops. You review and press Post.
 
 ## Requirements
 
+- macOS. Web-app projects would mostly work elsewhere, but the terminal and agent-product
+  path uses `screencapture`, AppleScript, and Terminal.app, and the installer assumes
+  Homebrew.
 - Claude Code or Codex.
 - Playwright MCP with the `devtools` capability enabled, which provides video recording.
   The installer registers it.
 - A browser Playwright can launch (Chromium is downloaded on first use).
-- `ffmpeg` and `tesseract` (`brew install ffmpeg tesseract`) for the video edit and the OCR
-  scan. Python 3 as shipped with macOS is enough for the scripts; they use no packages.
+- `ffmpeg` with the `drawtext` filter, plus `tesseract`, for the video edit and the OCR
+  scan. On Homebrew that is `brew install ffmpeg-full tesseract`; the plain `ffmpeg` formula
+  is built without `drawtext`, so captions and title cards fail with it. `ffmpeg-full` is
+  keg-only, so add `/opt/homebrew/opt/ffmpeg-full/bin` to the front of your PATH. The
+  installer checks all of this and prints the exact lines if anything is missing. Python 3
+  as shipped with macOS is enough for the scripts; they use no packages.
 - Optional: one or more background tracks you are licensed to use, dropped into
   `assets/music/`. Without them the video renders silent. See `assets/music/README.md`.
 - A LinkedIn account. You log in once in the Playwright browser window; the profile is kept
