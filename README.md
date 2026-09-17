@@ -1,14 +1,17 @@
 # Project Publisher
 
 A Claude Code Skill that turns a finished software project into a ready-to-review LinkedIn
-build-in-public post, with screenshots and a short demo video already loaded into the composer.
+build-in-public post, with screenshots and an edited 20–40 second demo video already loaded
+into the composer.
 
 Built as Day 1 of a 30-day challenge: one project a day, each posted to LinkedIn. This is the
 tool that publishes the other 29.
 
-There is no application here. The skill is a set of instructions that Claude Code or Codex follows using
-capabilities it already has: reading the repository, running Git and shell commands, driving a
-browser through Playwright MCP, and writing. No Python, no backend, no custom automation.
+There is no application here. The skill is a set of instructions that Claude Code or Codex
+follows using capabilities it already has: reading the repository, running Git and shell
+commands, driving a browser through Playwright MCP, and writing. The only code is two small
+deterministic scripts that edit the video with ffmpeg and blur sensitive text found by OCR;
+neither touches a browser, the network, or anything outside the project's `output/` folder.
 
 ## Workflow
 
@@ -29,11 +32,17 @@ Playwright explores it (not recorded)
       ↓
 2–4 screenshots captured and inspected
       ↓
-15–45 second demo video recorded and reviewed
+Raw footage recorded (browser via Playwright, or the whole screen for terminal projects)
+      ↓
+Edit plan: 4–6 scenes, each zoomed and captioned; fast-forward for terminal work
+      ↓
+Sensitive text found by OCR and blurred; rendered with title, end card, music
+      ↓
+Rendered video OCR-scanned until clean
       ↓
 LinkedIn post written, every claim checked against the repo
       ↓
-Security review of post, screenshots, and full video
+Security review of post, screenshots, and the final video
       ↓
 Screenshots or video chosen as the stronger medium
       ↓
@@ -48,6 +57,10 @@ Stops. You review and press Post.
 - Playwright MCP with the `devtools` capability enabled, which provides video recording.
   The installer registers it.
 - A browser Playwright can launch (Chromium is downloaded on first use).
+- `ffmpeg` and `tesseract` (`brew install ffmpeg tesseract`) for the video edit and the OCR
+  scan. Python 3 as shipped with macOS is enough for the scripts; they use no packages.
+- Optional: one or more background tracks you are licensed to use, dropped into
+  `assets/music/`. Without them the video renders silent. See `assets/music/README.md`.
 - A LinkedIn account. You log in once in the Playwright browser window; the profile is kept
   between runs so you are not asked again.
 
@@ -132,11 +145,16 @@ output/
     │   ├── 01-main.png
     │   ├── 02-feature.png
     │   └── 03-result.png
-    ├── demo.webm           the demo video
+    ├── raw-browser.webm    raw Playwright recording (web apps)
+    ├── raw-screen.mov      raw full-screen recording (terminal projects)
+    ├── plan.json           the edit plan: scenes, zoom regions, speeds, captions, music
+    ├── blur-*.json         OCR-found sensitive text, as blur boxes per scene
+    ├── demo.mp4            the finished video; the only one that is ever uploaded
     └── composer.png        the prepared LinkedIn composer, for the record
 ```
 
 Both screenshots and video are always captured, even though only one is loaded into LinkedIn.
+Raw recordings stay in `output/media/` for the record and never leave it.
 
 Add `output/` to the project's `.gitignore` if you do not want media committed.
 
@@ -155,8 +173,10 @@ others.
   motivation: if you skip the "what got you into this" question, the post opens on what the
   project does rather than on a made-up story.
 - The post, every screenshot, and the complete video are reviewed for secrets, credentials,
-  private URLs, personal data, and internal names before LinkedIn is opened. If anything is
-  uncertain, Claude stops and asks.
+  private URLs, personal data, and internal names before LinkedIn is opened. Terminal footage
+  is additionally OCR-scanned: home paths, usernames, repo URLs, emails, and token shapes are
+  blurred, and the rendered video is scanned again and must come back clean before it counts
+  as reviewed. If anything is uncertain, Claude stops and asks.
 - `.env` files, cookies, key material, and credential stores are never read.
 - Playwright only interacts with safe controls while exploring. Nothing labelled delete,
   purchase, pay, logout, or pointing at production is clicked.
@@ -170,23 +190,41 @@ project-publisher/
 ├── install.sh                     symlinks the skill and registers Playwright MCP for Claude Code and Codex
 ├── agents/
 │   └── openai.yaml                metadata so OpenAI-style agents can also discover the skill
+├── assets/
+│   └── music/                     your licensed background tracks (gitignored; README explains)
+├── scripts/
+│   ├── redact.py                  OCR a recording or a still, emit blur boxes for sensitive text
+│   └── render.py                  render plan.json into the finished video; --patch blurs leftovers
 └── references/
     ├── linkedin-style.md          audience, post spine, first line, voice, checklist
     ├── screenshot-guidelines.md   what to capture and how to check it
-    ├── video-guidelines.md        planning, recording, and reviewing the demo
-    └── security-guidelines.md     what must never be posted
+    ├── video-guidelines.md        raw capture, edit plan, redact/render/verify, review
+    └── security-guidelines.md     what must never be posted, and the OCR scan
 ```
 
 `SKILL.md` is deliberately short. The reference files hold the detail and are read only at the
-stage that needs them.
+stage that needs them. The scripts are plain Python 3 with no dependencies beyond `ffmpeg`
+and `tesseract` on PATH.
+
+## The video
+
+Raw recordings are never posted. The skill records footage (the browser through Playwright
+for web apps; the entire screen for terminal projects, so nothing that opens beside the
+terminal is cut off), then writes an edit plan: four to six scenes of four to ten seconds,
+each zoomed to the element or text block that matters, a one-sentence caption in the post's
+voice, terminal work fast-forwarded at 4–8× with a speed badge, a title card, an end card,
+and a music track from `assets/music/` faded and mixed underneath. `scripts/render.py` turns
+the plan into `demo.mp4` in under a minute, so fixes go into the plan, not the output.
 
 ## Terminal, CLI, and agent projects
 
 When a project has no web UI, the terminal is the product. The skill opens a clean Terminal.app
-window through AppleScript, gives it a plain prompt, and captures that window by id with the
-macOS built-in `screencapture`. Short deterministic commands become screenshots. A long agent
-run that you drive in that window is recorded whole and compressed into a timelapse with
-`ffmpeg`. Playwright is still used for the LinkedIn step.
+window through AppleScript, gives it a plain prompt, and records the whole screen with the
+macOS built-in `screencapture`, using the window's bounds as the zoom target. Short
+deterministic commands become screenshots. A long agent run that you drive in that window is
+recorded whole; the edit then picks its four to six best moments, zooms into the terminal,
+fast-forwards them, and blurs every path, username, and URL the OCR finds. Playwright is
+still used for the LinkedIn step.
 
 This needs Screen Recording permission for the app that runs Claude Code. The skill checks and
 tells you which app to allow if the capture fails.

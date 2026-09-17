@@ -1,6 +1,6 @@
 ---
 name: project-publisher
-description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and a short demo video, writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
+description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and an edited 20–40 second demo video (zoomed scenes, captions, music, sensitive text blurred), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
 argument-hint: "[Day N/30] [publish]"
 ---
 
@@ -8,8 +8,10 @@ argument-hint: "[Day N/30] [publish]"
 
 You are preparing a LinkedIn post about the repository in the current working directory.
 The agent does the reasoning, Git, and shell work. Playwright MCP does every browser action:
-exploring the app, screenshots, video, and LinkedIn. Do not write helper scripts or custom
-browser automation. Do not click LinkedIn's final Post button unless the user asked you to publish.
+exploring the app, screenshots, raw video, and LinkedIn. The two scripts in `scripts/`
+(`redact.py`, `render.py`) turn raw footage into the finished video; use them as they are and
+do not write new helper scripts or custom browser automation. Do not click LinkedIn's final
+Post button unless the user asked you to publish.
 
 Work through the stages in order. Each stage ends with a named artifact or decision. Tell the
 user in one or two lines what you concluded at the end of each stage.
@@ -52,6 +54,11 @@ user in one or two lines what you concluded at the end of each stage.
   is present. If `browser_navigate` exists but `browser_start_video` does not, a
   project-level Playwright server without `--caps=devtools` is shadowing the user-level one,
   or the existing entry was kept when the installer asked. Say so.
+- Check `ffmpeg`, `ffprobe`, and `tesseract` are on PATH (`which ffmpeg ffprobe tesseract`).
+  The video edit and the OCR redaction need all three. If any is missing, tell the user to
+  run `brew install ffmpeg tesseract` and continue with screenshots only for this run.
+- Note whether `<skill dir>/assets/music/` holds any audio file besides the README. If not,
+  the video will be silent; say so once, here, and do not stop for it.
 - Confirm you are in a Git repository. If not, continue without Git and say the recency analysis
   will be weaker.
 - `mkdir -p output/media/screenshots`. Everything you produce goes under `output/`.
@@ -186,22 +193,30 @@ Then for each: set up the state, capture at 1440 × 900 into
 batch at the end and reject any that are blurry, duplicated, half-loaded, or show anything from
 the security list. Retake only the rejects.
 
-## 8. Record the demo video
+## 8. Record, edit, and render the demo video
 
-Read `references/video-guidelines.md`. Turn the demo plan into one Playwright snippet (an
-async function of `page` with short pauses), dry-run it with `browser_run_code_unsafe` while
-not recording, fix any selector that fails, put the app back in its clean start state, then:
+Read `references/video-guidelines.md`. The finished video is edited, never a raw recording:
+title card, four to six scenes that each zoom to the thing that matters, one caption per
+scene, music underneath, end card, 20–40 seconds. Three passes:
 
-```
-browser_start_video      filename: output/media/demo.webm, size: { width: 1440, height: 900 }
-browser_run_code_unsafe  the same snippet
-browser_stop_video
-```
+1. **Record raw footage.** Web app: one Playwright snippet from the demo plan, dry-run first,
+   then recorded to `output/media/raw-browser.webm` at 1440 × 900, logging each target's
+   bounding box and timestamp as it goes. Terminal or agent product: record the *entire*
+   display with `screencapture -v` to `output/media/raw-screen.mov` (never a rectangle; it
+   cuts off whatever opens next to it) and note the terminal and browser window bounds.
+2. **Write the edit plan.** Tile the raw footage, pick the 4–6 moments that match the demo
+   plan, and write `output/media/plan.json`: per scene a source window, a speed (1× for
+   interactions, 4–8× for terminal work), a zoom region, and a one-sentence caption in the
+   post's voice. Title card from the brief's one-liner; end card with Day N/30 if given. Music
+   from `<skill dir>/assets/music/` if a track is there. Show the plan to the user in a few lines.
+3. **Redact, render, verify.** For every terminal scene run `scripts/redact.py` on the source
+   window with `--user $(whoami)` to get blur boxes. Run `scripts/render.py plan.json`. Then
+   OCR the rendered `output/media/demo.mp4` with `redact.py` at 5 fps; if it reports any
+   boxes, `render.py --patch` them and scan again. The video is not done until a scan of the
+   final file reports `0 boxes`. Tile the final file and Read every sheet.
 
-The recording is wall-clock, so the snippet controls the pacing, not tool round trips. Target
-15–45 seconds. Default to no annotations; add a pointer or at most two or three short
-chapter cards only if they help a viewer follow. Review the recording via ffmpeg contact sheets as the guideline
-describes. Re-record rather than edit if anything is off.
+If a scene cannot be made clean in two patch rounds, cut it from the plan and re-render.
+Rendering takes under a minute; fix the plan rather than the output.
 
 ## 9. Write the post
 
@@ -221,10 +236,12 @@ debugging time by 80%". When unsure, write the conservative version.
 
 ## 11. Security review
 
-Read `references/security-guidelines.md`. Review the post, every screenshot by eye, and the
-complete video including transitions. Produce the five-line checklist from that file. If any
-line is not a clean yes, do not open LinkedIn; describe the concern and wait for the user. If the
-video is the problem, re-record it rather than trying to redact.
+Read `references/security-guidelines.md`. Review the post and every screenshot by eye, and
+OCR-scan every screenshot with `scripts/redact.py` the same way as the video (a still is a
+one-frame video). The video's own clean scan from stage 8 counts as its review; quote the
+`0 boxes` line. Produce the six-line checklist from that file. If any line is not a clean yes,
+do not open LinkedIn; describe the concern and wait for the user. A screenshot that fails is
+retaken with the offending window closed, not blurred; blur is for footage only.
 
 ## 12. Choose the medium
 
@@ -254,13 +271,11 @@ Screenshot mode:
 4. `browser_snapshot` and confirm each image is attached to the draft.
 
 Video mode:
-1. Open the video control first and upload `output/media/demo.webm` with `browser_file_upload`.
+1. Open the video control first and upload `output/media/demo.mp4` (the rendered file, never
+   a raw recording) with `browser_file_upload`.
 2. `browser_wait_for` LinkedIn's processing to finish; the preview thumbnail appears.
 3. Type the post text into the editor.
 4. `browser_snapshot` and confirm the video preview is present.
-
-If LinkedIn rejects the WebM, convert once with the installed ffmpeg as described in
-`references/video-guidelines.md` and upload the MP4.
 
 Take one screenshot of the finished composer to `output/media/composer.png` for the record.
 
@@ -274,7 +289,7 @@ The LinkedIn post is prepared and ready for review.
 Media selected: Video | Screenshots
 Post text:      output/post.md
 Screenshots:    output/media/screenshots/
-Video:          output/media/demo.webm
+Video:          output/media/demo.mp4  (edit plan: output/media/plan.json)
 
 Review the content in the browser and publish when ready.
 ```
@@ -320,5 +335,8 @@ earlier files. Tell the user the record was written and where.
 
 - `references/linkedin-style.md` — audience, spine, first line, voice, formatting, banned list, checklist. Read at stage 4 and 9.
 - `references/screenshot-guidelines.md` — count, viewport, pre-capture checklist, naming, review. Read at stage 7.
-- `references/video-guidelines.md` — plan, pacing, never-show list, Playwright recording steps, terminal variant, review. Read at stage 8.
-- `references/security-guidelines.md` — what to look for, where, never-open list, final checklist. Read at stage 3 and 11.
+- `references/video-guidelines.md` — raw capture (browser via Playwright, full screen for terminal), edit plan format, redact/render/verify loop, review. Read at stage 8.
+- `references/security-guidelines.md` — what to look for, where, never-open list, OCR scan, final checklist. Read at stage 3 and 11.
+- `scripts/redact.py` — OCR a time window of a recording (or a still) and emit blur boxes for anything on the never-show list. Used at stage 8 and 11.
+- `scripts/render.py` — render `plan.json` into the finished video; `--patch` blurs leftover boxes in a rendered file. Used at stage 8.
+- `assets/music/` — the user's licensed background tracks. Read at stage 2 and 8.

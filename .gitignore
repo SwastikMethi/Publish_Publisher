@@ -1,2 +1,5 @@
 output/
 .DS_Store
+__pycache__/
+assets/music/*
+!assets/music/README.md

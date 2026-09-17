@@ -58,7 +58,10 @@ A post has a spine. Default order, reorder if the story wants it:
 
 6. Day N/30 (only if given)
 
-7. #tags
+7. The repository link, on its own line: "Code: https://github.com/<owner>/<repo>"
+   (only if the repo has a public remote; read it with `git remote get-url origin`)
+
+8. #tags
 ```
 
 Paragraphs 1, 3, and 4 carry the post. If paragraph 4 has nothing in it, go back to the
@@ -108,6 +111,24 @@ If they said yes, they also said how. Keep it to one sentence, in the slot they 
 
 Name the earlier project by what it is, not by its day number alone. "Day 2" means nothing
 to a stranger; "the weather dashboard" does.
+
+## The post and the media
+
+The post goes out with an edited video or two to four screenshots. They are read together,
+so they share a voice but never describe each other.
+
+- The post does not narrate its attachments. No "see the video below", "screenshots
+  attached", "the recording is my terminal while it worked", "watch it search a city". The
+  media is right there; the reader can see what it is.
+- The post does not depend on the media either. Someone reading with autoplay off, or in a
+  notification preview, gets the whole story from the text.
+- The video's title card takes its sub-line from the post's "what it does" sentence, and its
+  scene captions are written in the same voice as the post: one short plain sentence each,
+  present tense, no identifiers. If a caption would not fit in the post, it does not fit on
+  the video. Write the post first; the captions come from it.
+- Do not write the post around what was easiest to record. If the interesting detail did not
+  make it into the footage, it still leads the post; the video shows the product, the post
+  carries the idea.
 
 ## Voice
 
@@ -170,6 +191,8 @@ The latest commit
 This PR
 Today I split / added / moved / refactored / fixed
 What's not done
+See the video / screenshots below
+The recording is / the demo shows / attached
 On tomorrow's list
 Only X for now
 The service layer / the adapter / the component
@@ -293,11 +316,16 @@ Run every line. Fix and re-run until all pass.
 8. Identifiers: zero field names, function names, storage APIs, query strings, or
    architecture nouns (adapter, service layer, hook, component, coordinator).
 9. Ending: either a question the user actually wants answered, or the moment. Then day
-   number (if given), then hashtags. Not the stack, not a moral, not an invented ask, not a
-   status line.
+   number (if given), then the repository link (if the remote is public, as
+   "Code: <url>" on its own line, converted from an SSH remote to https), then hashtags.
+   Not the stack, not a moral, not an invented ask, not a status line. Never link a private
+   or work repository; if the remote is not on github.com, gitlab.com, or another public
+   host, leave the link out and say so.
 10. Formatting: paragraphs under about 300 characters, 800–1400 total, 0–3 emojis, 3–6
     hashtags, no markdown, nothing from the banned list.
 11. Facts: every claim traces to a file, commit, or the user's words. That includes the
     spark, any time spent, any feeling, and the closing question. Day number only if given.
-12. The file `output/post.md` contains only the post text. No notes, no commentary, no
+12. Media: no sentence points at the video or screenshots ("see below", "the recording",
+    "attached"). The post reads whole with the media hidden.
+13. The file `output/post.md` contains only the post text. No notes, no commentary, no
     instructions to the user, nothing after the hashtags.

@@ -67,8 +67,33 @@ Video, which is higher risk because content appears briefly:
 - Temporary error messages, toasts, and console-style output.
 - Loading states that briefly show raw JSON or request details.
 
-If anything unsafe appears anywhere in a video, do not upload it. Re-record the flow cleanly.
-Do not attempt to blur, crop, or trim around the problem.
+Web-app footage that shows anything unsafe is re-recorded cleanly. Terminal footage is
+different: the agent's own output prints home paths, usernames, and repo URLs that no prompt
+setting can hide, so terminal scenes are always run through `scripts/redact.py`, and the
+rendered video is OCR-scanned before it counts as reviewed (see `references/video-guidelines.md`,
+Pass 3). The scan is the check, not a substitute for it: the video is clean when a scan of the
+final file reports `0 boxes`, and not before.
+
+## OCR scan
+
+`scripts/redact.py` samples frames, runs tesseract, and matches every word against patterns
+for home paths, tilde paths, email addresses, `github.com/` and `owner/repo.git` references,
+token shapes (`sk-`, `ghp_`, `xoxb-`, `AKIA`, JWTs), IPv4 addresses, and the login name you
+pass with `--user`. Use it on:
+
+- every terminal scene's source window before rendering (produces the blur boxes)
+- the rendered `demo.mp4`, at 5 fps, after rendering (must report `0 boxes`; patch and rescan
+  until it does)
+- every screenshot (a `.png` input is treated as a single frame; `--start`/`--end` are
+  required by the parser but ignored):
+  `python3 <skill dir>/scripts/redact.py --input output/media/screenshots/01-main.png --start 0 --end 1 --user $(whoami) --out /tmp/pp-shot.json`
+
+A screenshot that produces a box is retaken with the offending content off screen. Blur is
+for footage only; a blurred still looks like it is hiding something.
+
+The scan misses things OCR cannot read (tiny text, text under a dialog, a profile picture)
+and matches only the patterns listed. It is one layer. Eyes on every still and every contact
+sheet remain the other.
 
 ## Never open
 
@@ -96,7 +121,9 @@ Confirm all of these in one short checklist in your response, with a yes or a sp
 for each:
 
 1. Post text reviewed: no secrets, no private names, every claim grounded.
-2. Each screenshot reviewed by eye.
-3. Full video reviewed, including transitions.
-4. No file from the never-open list was read.
-5. Nothing uncertain remains. If something does, it goes to the user before LinkedIn opens.
+2. Each screenshot reviewed by eye and OCR-scanned: 0 boxes each.
+3. Final `demo.mp4` OCR-scanned at 5 fps: 0 boxes (quote the line), and every contact sheet
+   of the final file read by eye.
+4. Only the rendered `demo.mp4` will be uploaded; no raw recording leaves `output/media/`.
+5. No file from the never-open list was read.
+6. Nothing uncertain remains. If something does, it goes to the user before LinkedIn opens.
