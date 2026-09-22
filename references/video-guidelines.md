@@ -1,12 +1,15 @@
 # Demo video guidelines
 
-Read this before recording. The finished video is an edited piece: a title card, four to six
-short scenes that each zoom to the part of the screen that matters, a caption per scene,
-music underneath, an end card. Twenty to forty seconds. It should feel like "here is what I
-built and how it works", not "here is an agent clicking around" and not a raw screen dump.
+Read this before recording. The finished video is a designed piece that has to hold a
+stranger for forty seconds in a feed that autoplays muted: a hook line before anything else,
+the title landing on the first beat of the music, four or five numbered chapters where the
+footage sits in a card beside a large caption, a stats card with counting numbers, and an end
+card that asks a question. Every cut lands on a beat, a progress bar runs along the bottom, and
+an original track is composed to the same beat grid. Thirty-five to forty seconds. It should
+feel like a launch video, not "here is an agent clicking around" and not a raw screen dump.
 
-The work happens in three passes: record raw footage, write an edit plan, render. Nothing
-uploaded to LinkedIn is ever the raw recording.
+The work happens in four passes: record raw footage, write an edit plan, compose the music,
+render. Nothing uploaded to LinkedIn is ever the raw recording.
 
 ## Pass 1: record raw footage
 
@@ -17,7 +20,8 @@ then record it once, cleanly. If the take is messy, delete it and record again.
 
 ### The demo plan
 
-4–6 steps in this shape, each a specific action on a specific element:
+4–5 steps in this shape, each a specific action on a specific element. Each step becomes a
+chapter of the finished video with a one-word name, so think in verbs:
 
 ```
 1. Start on the strongest screen, content loaded.
@@ -27,11 +31,13 @@ then record it once, cleanly. If the take is messy, delete it and record again.
 5. End on a clean, meaningful result screen. Hold for about two seconds.
 ```
 
-The plan lines up with the post: what the post calls interesting is what the video shows.
+The plan lines up with the post: what the post calls interesting is what the video shows,
+and the last step is the design detail or the refusal, which is where the video ends.
 
 ### Pacing while recording
 
-- Show the core value within the first 10 seconds of the finished video.
+- The hook and title take the first six seconds; the first chapter must show the core value
+  by second ten, so the first recorded moment has to be the product doing its job.
 - Pause about one second after each meaningful change. Use `browser_wait_for` with a time or
   a text match, not a sleep in Bash.
 - No repeated actions, no back-and-forth navigation, no scrolling unless the content below
@@ -167,61 +173,162 @@ ffmpeg -v error -y -i output/media/raw-screen.mov -vf "fps=1/5,scale=480:-1,tile
 ```
 
 For a 20-minute recording that is 20 sheets; skim them for the moments that match the demo
-plan, then look closer around each with a denser tile if needed. Pick 4–6 scenes. For each,
-decide: source start and end, speed, zoom region, caption.
+plan, then look closer around each with a denser tile if needed. Then open one full-resolution
+frame from each candidate moment (`ffmpeg -ss <t> -i raw.mov -frames:v 1 frame.png`) and Read
+it: crop regions are chosen from real pixels, never guessed.
 
-Rules of thumb:
+### The spine
 
-- A web-app interaction plays at 1×. Zoom to the element that was clicked and its result.
-- A terminal scene fast-forwards at 4–8×. Zoom to the terminal window bounds, or tighter to
-  the text block that matters. A minute of the agent thinking becomes ten seconds.
-- Each scene is 4–10 seconds of output. Total 20–40 seconds plus title and end cards.
-- Captions are one short sentence in plain words, the same voice as the post. They are what
-  the viewer reads; the screen is texture. ("It reads the repo and writes a brief.")
-- Title card: project name and the post's one-line "what it does". End card: Day N/30 and the
-  theme hashtag, or the project name again.
+The video has the same spine as the post, in this order. Every part is a plan entry:
 
-Write the plan to `output/media/plan.json`:
+```
+hook     6 beats   the spark as one or two big lines, the "what I built" as a smaller sub-line
+title    6 beats   project name; sub-line is the post's "you give it X, it gives you Y"
+01..05   10-12     four or five chapters, one verb each: the demo plan's steps in order
+stats    8 beats   real numbers from the run, the design detail as the highlighted one
+end      8 beats   Day N/30, the theme hashtag, and the post's closing question
+```
+
+Put the stats card after the third or fourth chapter, never last: the music breaks there and
+drops again on the chapter that follows, so the strongest chapter (usually the result) goes
+after it. Total 78-84 beats; at 125 bpm that is 37-40 seconds. Fewer than four chapters
+means the demo plan was too thin; go back to the footage.
+
+### Beats, not seconds
+
+Pick a bpm with the mood: `energetic` 120-128, `calm` 80-92. Every scene's length is a beat
+count; footage scenes are 10 or 12 beats (4.8-5.8 s at 125 bpm). The speed of a footage
+scene is not chosen, it is derived: the source window divided by the scene length. So pick
+windows that give 4-8x for terminal work and about 1x for browser interaction, and adjust the
+window, not the speed. A window shorter than the scene plays at 1x and holds its last frame.
+
+### Chapters
+
+Each chapter is one verb of the product: Search, Capture, Score, Tailor, Approve. Reads,
+Starts, Clicks, Writes, Loads. The chapter word is drawn in small caps under a big number, so
+keep it to one word.
+
+Captions are three or four short lines, 18 characters or fewer each, in the post's voice, and
+they carry the meaning; the footage is texture. Say what the product does, not what is on the
+screen: "Scores each job / against what the / resume actually / proves", not "Analysis JSON
+written". No identifiers, no file names, no architecture nouns. The last chapter's caption is
+the design detail or the refusal: the thing the post is about.
+
+Two layouts:
+
+- `side` (default): a 1180x780 card on the right, caption on the left. For any region that
+  is roughly 3:2 or taller: a browser page, a JSON block, a column of terminal output.
+- `wide`: a 1680x720 card across the top, one or two caption lines under it, the second in
+  the accent colour. For terminal output that spans the whole screen width, like a final
+  summary. Use it once, for the last chapter, if at all.
+
+### Crop regions
+
+The crop is in source pixels and is fitted to the card's aspect around its centre, so give
+the region you want to see and let the fit widen it. Choose it from the full-resolution frame
+so that every one of these is outside the region:
+
+- the terminal window's title bar (it prints `user — app — command`)
+- the browser's tab strip, address bar, and any warning banner under it
+- the agent's own footer: status line, "Tip:" lines, token counts
+- the macOS menu bar and Dock
+- any redaction blur that would cover more than a corner of the card
+
+Then check the text that remains is legible when the card is 1180 px wide: for a 3456-wide
+Retina recording that means a region no wider than about 1900 px for terminal text and about
+1500 px for a browser page. If the important text is smaller than that, the region is too
+large; cut it in half and pick the half the caption is about.
+
+A region that cannot be made clean this way (a wall of paths, a blurred command line) is not
+a chapter. Pick another moment.
+
+### Stats card
+
+Four numbers from the actual run, each with a two- or three-word label, taken from the
+tracker, the summary the agent printed, the output folder. Never estimates. Make the fourth
+the design detail whenever one is a number ("0 auto-submitted", "1 file changed", "0
+retries") and set `highlight` to its index so it draws in the accent colour. The optional
+`note` under the numbers is one sentence from the post.
+
+### Music mood
+
+`energetic` for tools, automations, anything that runs or produces; `calm` for reading,
+writing, planning, and design tools. The track is composed to the plan in Pass 3, so the plan
+only names the mood and, optionally, a `seed` so a re-render keeps the same track. A licensed
+track in `assets/music/` can be used instead by pointing `music.file` at it; then the beat grid
+will not match it, which is fine for `calm` and wrong for `energetic`.
+
+### The plan file
+
+Write `output/media/plan.json`:
 
 ```json
 {
   "output": "output/media/demo.mp4",
-  "size": [1920, 1080],
-  "fps": 30,
-  "transition": 0.5,
-  "title": {"text": "Project Publisher", "sub": "one command from a repo to a LinkedIn draft", "duration": 2.5},
-  "end":   {"text": "Day 1/30", "sub": "#buildinpublic", "duration": 2.0},
-  "music": {"file": "<skill dir>/assets/music/<track>", "volume_db": -20},
-  "segments": [
-    {"src": "output/media/raw-screen.mov", "start": 118, "end": 136, "speed": 4,
-     "zoom": {"x": 40, "y": 30, "w": 1500, "h": 820, "ease": 1.2},
-     "caption": "It reads the repo and writes a brief",
-     "blur": "output/media/blur-118-136.json"},
-    {"src": "output/media/raw-browser.webm", "start": 3.0, "end": 11.0, "speed": 1,
-     "zoom": {"x": 120, "y": 180, "w": 900, "h": 520, "ease": 1.4},
-     "caption": "Type a city and the forecast fills in"}
-  ]
+  "size": [1920, 1080], "fps": 30, "bpm": 125,
+  "brand": {"name": "AI Job Orient", "day": "Day 2/30"},
+  "music": {"file": "output/media/music.mp3", "mood": "energetic"},
+  "hook":  {"lines": ["Applying to jobs", "is a full-time job."],
+            "sub": "So I built one that does it. And asks before every submit.", "beats": 6},
+  "title": {"text": "AI Job Orient",
+            "sub": ["Finds the jobs, scores them, tailors your resume,",
+                    "and waits for your yes before anything is submitted."], "beats": 6},
+  "scenes": [
+    {"type": "footage", "layout": "side", "chapter": "Search",
+     "src": "output/media/raw-screen.mov", "start": 118.0, "end": 141.0,
+     "crop": {"x": 1480, "y": 300, "w": 1900, "h": 1260},
+     "caption": ["Searches LinkedIn", "and Naukri, logs", "every posting"],
+     "beats": 10, "blur": "output/media/blur-118-141.json"},
+    {"type": "footage", "layout": "side", "chapter": "Score", "...": "..."},
+    {"type": "stats", "label": "This run, start to finish",
+     "items": [[4, "postings found"], [3, "shortlisted"], [1, "below threshold"], [0, "auto-submitted"]],
+     "highlight": 3, "note": "Every 'Awaiting approval' status still needs a human yes.", "beats": 8},
+    {"type": "footage", "layout": "wide", "chapter": "Approve",
+     "src": "output/media/raw-screen.mov", "start": 466.0, "end": 490.0,
+     "crop": {"x": 0, "y": 60, "w": 3456, "h": 1480},
+     "caption": ["Three tailored packages wait for approval.", "Nothing goes out without my yes."],
+     "beats": 10, "blur": "output/media/blur-466-490.json"}
+  ],
+  "end": {"text": "Day 2/30", "sub": "#buildinpublic",
+          "question": "Would you let it press Apply for you?", "beats": 8}
 }
 ```
 
-Zoom regions are in source pixels and are fitted to the output aspect around their centre;
-`ease` is the seconds the zoom takes to settle. Speed above 1.5× shows a small "6x" badge.
-Pick the music track from `assets/music/` in the skill directory; if the folder holds only
-the README, leave `music` out and tell the user the video is silent.
+`brand.day` and `end.text` are omitted when no challenge day was given; the end card then
+repeats the project name. `end.question` is the post's closing question, and is left out
+when the user did not supply one. `font` may be set if Arial Bold is not wanted; the card
+colours come from `theme.accent` and `theme.accent2` and default to amber and teal. Show the
+plan to the user in a few lines: the hook, the chapter words with their captions, the four
+stats, the question.
 
-## Pass 3: redact, render, verify
+## Pass 3: compose, redact, render, verify
 
-Three scripts calls, all deterministic, all in the skill's `scripts/` directory. They need
-`ffmpeg` with the `drawtext` filter, `ffprobe`, and `tesseract` on PATH. On Homebrew:
-`brew install ffmpeg-full tesseract`, then `export PATH=/opt/homebrew/opt/ffmpeg-full/bin:$PATH`.
-The plain `ffmpeg` formula lacks `drawtext` and every render fails at the title card.
+Four script calls, all deterministic, all in the skill's `scripts/` directory. They need
+`ffmpeg` with the `drawtext` filter, `ffprobe`, `tesseract`, and Python 3 with `numpy` (the
+music only). On Homebrew: `brew install ffmpeg-full tesseract`, then
+`export PATH=/opt/homebrew/opt/ffmpeg-full/bin:$PATH`, and `python3 -m pip install numpy`.
+The plain `ffmpeg` formula lacks `drawtext` and every render fails at the hook card.
+
+**Compose the music.** The track follows the plan's beat grid: a filtered intro and riser
+under the hook, a drop on the title's first frame, the groove under the chapters, a break with
+a riser under the stats card, a second drop on the chapter after it, a tail that fades with
+the end card. Everything is synthesised, so it is original and safe to post.
+
+```
+python3 <skill dir>/scripts/compose.py output/media/plan.json
+```
+
+It writes `music.file` (default `output/media/music.mp3`) and prints the section map. If
+`numpy` is missing it says so; then either install it or point `music.file` at a licensed
+track from `assets/music/`, and say in the review which one happened. Never render silent
+without telling the user.
 
 **Redact every terminal scene.** OCR the source window and produce blur boxes for anything
 on the never-show list. Pass the user's login name so it is caught even when OCR misreads it:
 
 ```
 python3 <skill dir>/scripts/redact.py --input output/media/raw-screen.mov \
-        --start 118 --end 136 --user $(whoami) --out output/media/blur-118-136.json
+        --start 118 --end 141 --user $(whoami) --out output/media/blur-118-141.json
 ```
 
 It samples four frames per second, so a minute of source takes about a minute on a Mac.
@@ -232,6 +339,9 @@ Browser scenes normally need no redaction, but run it if the app shows accounts 
 ```
 python3 <skill dir>/scripts/render.py output/media/plan.json
 ```
+
+It prints one line per scene with its derived speed and blur count, then the total. A total
+outside 30-45 s gets a note; fix the beats in the plan.
 
 **Verify the output by OCR, then patch.** The rendered file is what ships, so scan it, not
 the sources. Anything found is blurred in place and the scan is repeated until it is clean:
@@ -245,7 +355,8 @@ mv output/media/demo-clean.mp4 output/media/demo.mp4
 
 Repeat the scan. Only a scan that reports `0 boxes` clears the video for stage 11. If two
 patch rounds do not get there, something in a scene is wrong (a wall of paths, a credentials
-screen): cut that scene from the plan and re-render rather than blurring half the frame.
+screen): change that chapter's crop or moment in the plan and re-render rather than blurring
+half the card.
 
 ## Review the finished video
 
@@ -255,14 +366,24 @@ Tile it and Read every sheet:
 ffmpeg -v error -y -i output/media/demo.mp4 -vf "fps=1/2,scale=480:-1,tile=3x3" output/media/frames/final%d.png
 ```
 
-Check: the title card reads cleanly; every scene's zoom lands on the thing the caption
-names; text is legible at phone size (if it is not, the zoom region is too large); no scene
-is a blur field; transitions are clean; the last frame holds; the badge shows the speed on
-fast-forwarded scenes; nothing from the never-show list is readable anywhere. Play the file
-once for the music level: audible, never competing with the captions.
+Check, in this order:
 
-Delete `output/media/frames/` after review. Fix the plan and re-render rather than editing
-the output; rendering takes under a minute.
+- The hook reads in one glance and the title lands on the drop (frame at the title's first
+  beat shows the name already large, the accent bar sweeping).
+- Every chapter's card shows the thing its caption names, and the text inside the card is
+  legible on the 480-px tile; if it is not, the crop is too large.
+- Nothing inside any card is from the never-show list: no title bar, no address bar, no
+  footer, no username, no blur covering more than a corner.
+- The stats card's numbers match the run; the highlighted one is the design detail.
+- The end card shows the day, the hashtag, and the question.
+- The progress bar is visible along the bottom and the small brand footer only during the
+  chapters.
+- The speed badge shows on fast-forwarded chapters and not on 1x ones.
 
-The raw recordings (`raw-screen.mov`, `raw-browser.webm`) stay in `output/media/` for the
-record but are never uploaded. LinkedIn gets `demo.mp4` only.
+Play the file once: the drop lands on the title, the break lands on the stats card, the
+music is the only audio and sits at a normal level (it is normalised to -14 LUFS). Delete
+`output/media/frames/` after review. Fix the plan and re-render rather than editing the
+output; a render takes about a minute.
+
+The raw recordings (`raw-screen.mov`, `raw-browser.webm`) and `music.mp3` stay in
+`output/media/` for the record but are never uploaded. LinkedIn gets `demo.mp4` only.

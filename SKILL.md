@@ -1,6 +1,6 @@
 ---
 name: project-publisher
-description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and an edited 20–40 second demo video (zoomed scenes, captions, music, sensitive text blurred), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
+description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and a designed 35–40 second demo video (hook, title on the beat, numbered chapters with footage in a card beside big captions, stats card, end-card question, original music composed to the cut, sensitive text blurred), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
 argument-hint: "[Day N/30] [publish]"
 ---
 
@@ -8,9 +8,9 @@ argument-hint: "[Day N/30] [publish]"
 
 You are preparing a LinkedIn post about the repository in the current working directory.
 The agent does the reasoning, Git, and shell work. Playwright MCP does every browser action:
-exploring the app, screenshots, raw video, and LinkedIn. The two scripts in `scripts/`
-(`redact.py`, `render.py`) turn raw footage into the finished video; use them as they are and
-do not write new helper scripts or custom browser automation. Do not click LinkedIn's final
+exploring the app, screenshots, raw video, and LinkedIn. The three scripts in `scripts/`
+(`redact.py`, `compose.py`, `render.py`) turn raw footage into the finished video and its
+music; use them as they are and do not write new helper scripts or custom browser automation. Do not click LinkedIn's final
 Post button unless the user asked you to publish.
 
 Work through the stages in order. Each stage ends with a named artifact or decision. Tell the
@@ -56,13 +56,15 @@ user in one or two lines what you concluded at the end of each stage.
   or the existing entry was kept when the installer asked. Say so.
 - Check `ffmpeg`, `ffprobe`, and `tesseract` are on PATH and that ffmpeg has the `drawtext`
   filter: `which ffmpeg ffprobe tesseract && ffmpeg -hide_banner -filters | grep -q drawtext`.
-  The video edit needs `drawtext` for title cards and captions; Homebrew's plain `ffmpeg`
+  The video edit needs `drawtext` for every card and caption; Homebrew's plain `ffmpeg`
   formula is built without it. If anything is missing, tell the user to run
   `brew install ffmpeg-full tesseract` and put `/opt/homebrew/opt/ffmpeg-full/bin` first on
   PATH (the installer prints the exact line), then continue with screenshots only for this
   run.
-- Note whether `<skill dir>/assets/music/` holds any audio file besides the README. If not,
-  the video will be silent; say so once, here, and do not stop for it.
+- Check `python3 -c "import numpy"`. The music is composed by `scripts/compose.py`, which
+  needs it. If it is missing, tell the user once (`python3 -m pip install numpy`) and note
+  that this run will fall back to a licensed track from `<skill dir>/assets/music/` if one is
+  there, or render silent if not. Do not stop for it.
 - Confirm you are in a Git repository. If not, continue without Git and say the recency analysis
   will be weaker.
 - `mkdir -p output/media/screenshots`. Everything you produce goes under `output/`.
@@ -97,7 +99,11 @@ Design detail:      one decision, constraint, tradeoff, or surprise, told as a p
                     project, not as a task done today; with file or commit as evidence
 Question (user):    something the user actually wants answered, from stage 1; blank if none
 Worth showing:      which screens or interactions
-Demo workflow:      the one flow that shows the value
+Demo workflow:      the one flow that shows the value, as 4–5 verbs (these become the
+                    video's chapters: Search, Score, Tailor, Approve)
+Numbers:            three or four counts the run will produce (items found, files written,
+                    things refused), each with where it will be read from; filled in after
+                    stage 8 for the video's stats card
 ```
 
 Every line must trace to a file, a commit, or the user's words. No invented metrics, users,
@@ -197,30 +203,40 @@ Then for each: set up the state, capture at 1440 × 900 into
 batch at the end and reject any that are blurry, duplicated, half-loaded, or show anything from
 the security list. Retake only the rejects.
 
-## 8. Record, edit, and render the demo video
+## 8. Record, edit, compose, and render the demo video
 
-Read `references/video-guidelines.md`. The finished video is edited, never a raw recording:
-title card, four to six scenes that each zoom to the thing that matters, one caption per
-scene, music underneath, end card, 20–40 seconds. Three passes:
+Read `references/video-guidelines.md`. The finished video is a designed piece, never a raw
+recording: a hook, a title on the first beat drop, four or five numbered chapters with the
+footage in a card beside a large caption, a stats card with the run's real numbers, an end
+card with Day N/30 and the closing question, a progress bar, an original track composed to
+the same beat grid, 35–40 seconds. Four passes:
 
 1. **Record raw footage.** Web app: one Playwright snippet from the demo plan, dry-run first,
    then recorded to `output/media/raw-browser.webm` at 1440 × 900, logging each target's
    bounding box and timestamp as it goes. Terminal or agent product: record the *entire*
    display with `screencapture -v` to `output/media/raw-screen.mov` (never a rectangle; it
    cuts off whatever opens next to it) and note the terminal and browser window bounds.
-2. **Write the edit plan.** Tile the raw footage, pick the 4–6 moments that match the demo
-   plan, and write `output/media/plan.json`: per scene a source window, a speed (1× for
-   interactions, 4–8× for terminal work), a zoom region, and a one-sentence caption in the
-   post's voice. Title card from the brief's one-liner; end card with Day N/30 if given. Music
-   from `<skill dir>/assets/music/` if a track is there. Show the plan to the user in a few lines.
-3. **Redact, render, verify.** For every terminal scene run `scripts/redact.py` on the source
-   window with `--user $(whoami)` to get blur boxes. Run `scripts/render.py plan.json`. Then
-   OCR the rendered `output/media/demo.mp4` with `redact.py` at 5 fps; if it reports any
-   boxes, `render.py --patch` them and scan again. The video is not done until a scan of the
-   final file reports `0 boxes`. Tile the final file and Read every sheet.
+2. **Write the edit plan.** Tile the raw footage, open one full-resolution frame per
+   candidate moment, and write `output/media/plan.json` along the guide's spine: hook (the
+   user's spark from stage 1 as one or two big lines), title (name plus the "you give it X"
+   line), four or five chapters of 10–12 beats with a one-word chapter name, a crop region
+   chosen from real pixels that excludes title bars, address bars, footers, and usernames,
+   and a three- or four-line caption in the post's voice; a stats card of four real numbers
+   with the design detail highlighted; the end card with Day N/30 if given and the user's
+   question if given; the music mood. Show the plan to the user in a few lines.
+3. **Compose the music.** `scripts/compose.py plan.json` writes an original track that
+   follows the plan's beats: riser under the hook, drop on the title, break under the stats
+   card, second drop after it, fade with the end card. If numpy is missing, fall back as
+   stage 2 decided and say so.
+4. **Redact, render, verify.** For every terminal scene run `scripts/redact.py` on the
+   source window with `--user $(whoami)` to get blur boxes. Run `scripts/render.py plan.json`;
+   it prints each chapter's derived speed. Then OCR the rendered `output/media/demo.mp4` with
+   `redact.py` at 5 fps; if it reports any boxes, `render.py --patch` them and scan again.
+   The video is not done until a scan of the final file reports `0 boxes`. Tile the final
+   file and Read every sheet against the guide's review list.
 
-If a scene cannot be made clean in two patch rounds, cut it from the plan and re-render.
-Rendering takes under a minute; fix the plan rather than the output.
+If a chapter cannot be made clean in two patch rounds, change its crop or moment in the plan
+and re-render. Rendering takes about a minute; fix the plan rather than the output.
 
 ## 9. Write the post
 
@@ -252,9 +268,10 @@ retaken with the offending window closed, not blurred; blur is for footage only.
 Decide between a screenshot post (2–4 images) and a video post (one demo) by asking: is the
 interesting part a state, or a transition? Static screens that explain themselves favour
 screenshots. Interaction, transformation, or something appearing over time favours video.
-Also weigh clarity, uniqueness, information density, and professional look. Do not assume video
-wins. For terminal and agent products, screenshots are the default; use a clip only if
-something visibly happens in it. State the choice and the reason in a short paragraph. If it is
+Also weigh clarity, uniqueness, information density, and professional look. The designed
+video carries its story in the captions and the stats card, so it usually wins even for
+terminal and agent products; choose screenshots when the product is a single screen and
+nothing in the footage moves or changes. State the choice and the reason in a short paragraph. If it is
 a genuine toss-up, ask the user before continuing.
 
 ## 13. Prepare LinkedIn
@@ -293,7 +310,7 @@ The LinkedIn post is prepared and ready for review.
 Media selected: Video | Screenshots
 Post text:      output/post.md
 Screenshots:    output/media/screenshots/
-Video:          output/media/demo.mp4  (edit plan: output/media/plan.json)
+Video:          output/media/demo.mp4  (edit plan: output/media/plan.json, music: output/media/music.mp3)
 
 Review the content in the browser and publish when ready.
 ```
@@ -339,8 +356,9 @@ earlier files. Tell the user the record was written and where.
 
 - `references/linkedin-style.md` — audience, spine, first line, voice, formatting, banned list, checklist. Read at stage 4 and 9.
 - `references/screenshot-guidelines.md` — count, viewport, pre-capture checklist, naming, review. Read at stage 7.
-- `references/video-guidelines.md` — raw capture (browser via Playwright, full screen for terminal), edit plan format, redact/render/verify loop, review. Read at stage 8.
+- `references/video-guidelines.md` — raw capture (browser via Playwright, full screen for terminal), the video's spine, beat grid, chapters, crop rules, stats card, plan format, compose/redact/render/verify loop, review. Read at stage 8.
 - `references/security-guidelines.md` — what to look for, where, never-open list, OCR scan, final checklist. Read at stage 3 and 11.
 - `scripts/redact.py` — OCR a time window of a recording (or a still) and emit blur boxes for anything on the never-show list. Used at stage 8 and 11.
+- `scripts/compose.py` — compose an original music track to `plan.json`'s beat grid (`--mood energetic|calm`). Used at stage 8.
 - `scripts/render.py` — render `plan.json` into the finished video; `--patch` blurs leftover boxes in a rendered file. Used at stage 8.
-- `assets/music/` — the user's licensed background tracks. Read at stage 2 and 8.
+- `assets/music/` — optional licensed tracks, used only when compose.py cannot run or the plan points at one. Read at stage 2.

@@ -149,6 +149,15 @@ check_media_tools() {
   else
     echo "  tesseract: ok"
   fi
+  # compose.py writes the music and needs numpy; without it the video falls back to a
+  # licensed track from assets/music/ or renders silent.
+  if python3 -c 'import numpy' 2>/dev/null; then
+    echo "  numpy: ok (music composer)"
+  else
+    echo "  numpy: missing. The music composer needs it:" >&2
+    echo "          python3 -m pip install numpy" >&2
+    echo "  Without it videos use a track from assets/music/ if present, otherwise render silent." >&2
+  fi
 }
 
 mkdir -p "$profile_dir" "$output_dir" "$HOME/.project-publisher/posts"

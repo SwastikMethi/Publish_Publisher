@@ -1,7 +1,7 @@
 # Project Publisher
 
 A Claude Code Skill that turns a finished software project into a ready-to-review LinkedIn
-build-in-public post, with screenshots and an edited 20–40 second demo video already loaded
+build-in-public post, with screenshots and a designed 35–40 second demo video already loaded
 into the composer.
 
 Built as Day 1 of a 30-day challenge: one project a day, each posted to LinkedIn. This is the
@@ -10,7 +10,7 @@ tool that publishes the other 29.
 There is no application here. The skill is a set of instructions that Claude Code or Codex
 follows using capabilities it already has: reading the repository, running Git and shell
 commands, driving a browser through Playwright MCP, and writing. The only code is two small
-deterministic scripts that edit the video with ffmpeg and blur sensitive text found by OCR;
+deterministic scripts that compose the music, edit the video with ffmpeg, and blur sensitive text found by OCR;
 neither touches a browser, the network, or anything outside the project's `output/` folder.
 
 ## Workflow
@@ -36,7 +36,7 @@ Raw footage recorded (browser via Playwright, or the whole screen for terminal p
       ↓
 Edit plan: 4–6 scenes, each zoomed and captioned; fast-forward for terminal work
       ↓
-Sensitive text found by OCR and blurred; rendered with title, end card, music
+Sensitive text found by OCR and blurred; rendered as hook, title, chapters, stats, end card, with music composed to the cut
       ↓
 Rendered video OCR-scanned until clean
       ↓
@@ -65,9 +65,11 @@ Stops. You review and press Post.
   is built without `drawtext`, so captions and title cards fail with it. `ffmpeg-full` is
   keg-only, so add `/opt/homebrew/opt/ffmpeg-full/bin` to the front of your PATH. The
   installer checks all of this and prints the exact lines if anything is missing. Python 3
-  as shipped with macOS is enough for the scripts; they use no packages.
-- Optional: one or more background tracks you are licensed to use, dropped into
-  `assets/music/`. Without them the video renders silent. See `assets/music/README.md`.
+  as shipped with macOS is enough for `redact.py` and `render.py`; `compose.py`, which writes
+  the music, needs `numpy` (`python3 -m pip install numpy`).
+- Optional: background tracks you are licensed to use, dropped into `assets/music/`. They
+  are only used when the composer cannot run or a plan points at one; normally every video
+  gets its own original track. See `assets/music/README.md`.
 - A LinkedIn account. You log in once in the Playwright browser window; the profile is kept
   between runs so you are not asked again.
 
@@ -154,7 +156,8 @@ output/
     │   └── 03-result.png
     ├── raw-browser.webm    raw Playwright recording (web apps)
     ├── raw-screen.mov      raw full-screen recording (terminal projects)
-    ├── plan.json           the edit plan: scenes, zoom regions, speeds, captions, music
+    ├── plan.json           the edit plan: hook, title, chapters, stats, end card, music mood
+    ├── music.mp3           the original track composed for this plan
     ├── blur-*.json         OCR-found sensitive text, as blur boxes per scene
     ├── demo.mp4            the finished video; the only one that is ever uploaded
     └── composer.png        the prepared LinkedIn composer, for the record
@@ -198,9 +201,10 @@ project-publisher/
 ├── agents/
 │   └── openai.yaml                metadata so OpenAI-style agents can also discover the skill
 ├── assets/
-│   └── music/                     your licensed background tracks (gitignored; README explains)
+│   └── music/                     optional licensed tracks (gitignored; README explains)
 ├── scripts/
 │   ├── redact.py                  OCR a recording or a still, emit blur boxes for sensitive text
+│   ├── compose.py                 compose an original track to plan.json's beat grid
 │   └── render.py                  render plan.json into the finished video; --patch blurs leftovers
 └── references/
     ├── linkedin-style.md          audience, post spine, first line, voice, checklist
@@ -211,17 +215,30 @@ project-publisher/
 
 `SKILL.md` is deliberately short. The reference files hold the detail and are read only at the
 stage that needs them. The scripts are plain Python 3 with no dependencies beyond `ffmpeg`
-and `tesseract` on PATH.
+and `tesseract` on PATH, except the composer, which needs `numpy`.
 
 ## The video
 
 Raw recordings are never posted. The skill records footage (the browser through Playwright
 for web apps; the entire screen for terminal projects, so nothing that opens beside the
-terminal is cut off), then writes an edit plan: four to six scenes of four to ten seconds,
-each zoomed to the element or text block that matters, a one-sentence caption in the post's
-voice, terminal work fast-forwarded at 4–8× with a speed badge, a title card, an end card,
-and a music track from `assets/music/` faded and mixed underneath. `scripts/render.py` turns
-the plan into `demo.mp4` in under a minute, so fixes go into the plan, not the output.
+terminal is cut off), then writes an edit plan with the same spine as the post:
+
+- a hook card: the spark in one or two big lines, before any logo
+- the title, landing on the first beat drop of the music
+- four or five numbered chapters, one verb each (Search, Score, Tailor, Approve): the footage
+  cropped at native resolution into a rounded card that slides in on the cut, beside a
+  three- or four-line caption that carries the meaning; terminal work fast-forwarded with a
+  speed badge, browser interaction at 1x
+- a stats card with four real numbers from the run counting up, the design detail highlighted
+- an end card with Day N/30, the theme hashtag, and the post's closing question
+- a progress bar along the bottom, so a viewer at second fifteen knows how much is left
+
+Scene lengths are beat counts on a 125 bpm grid (or 84 for the calm mood), so every cut lands
+on the music. `scripts/compose.py` then synthesises an original track that follows the plan:
+a riser under the hook, a drop on the title, a break under the stats card, a second drop on
+the chapter after it, a fade with the end card. Nothing is sampled or downloaded, so there is
+nothing for LinkedIn to flag. `scripts/render.py` turns plan and track into `demo.mp4` in
+about a minute, so fixes go into the plan, not the output.
 
 ## Terminal, CLI, and agent projects
 
