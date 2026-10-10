@@ -156,7 +156,7 @@ output/
     │   └── 03-result.png
     ├── raw-browser.webm    raw Playwright recording (web apps)
     ├── raw-screen.mov      raw full-screen recording (terminal projects)
-    ├── plan.json           the edit plan: hook, title, chapters, stats, end card, music mood
+    ├── plan.json           the edit plan: theme, hook, title, chapters, stats, end card
     ├── music.mp3           the original track composed for this plan
     ├── blur-*.json         OCR-found sensitive text, as blur boxes per scene
     ├── demo.mp4            the finished video; the only one that is ever uploaded
@@ -221,20 +221,25 @@ and `tesseract` on PATH, except the composer, which needs `numpy`.
 
 Raw recordings are never posted. The skill records footage (the browser through Playwright
 for web apps; the entire screen for terminal projects, so nothing that opens beside the
-terminal is cut off), then writes an edit plan with the same spine as the post:
+terminal is cut off), then writes an edit plan with the same spine as the post: the spark as
+a hook, the title on the first drop of the music, four or five chapters of footage, one verb
+each, with a caption that carries the meaning (terminal work fast-forwarded, browser
+interaction at 1x), four real numbers from the run with the design detail highlighted, and
+the post's closing question. A progress bar runs along the bottom.
 
-- a hook card: the spark in one or two big lines, before any logo
-- the title, landing on the first beat drop of the music
-- four or five numbered chapters, one verb each (Search, Score, Tailor, Approve): the footage
-  cropped at native resolution into a rounded card that slides in on the cut, beside a
-  three- or four-line caption that carries the meaning; terminal work fast-forwarded with a
-  speed badge, browser interaction at 1x
-- a stats card with four real numbers from the run counting up, the design detail highlighted
-- an end card with Day N/30, the theme hashtag, and the post's closing question
-- a progress bar along the bottom, so a viewer at second fifteen knows how much is left
+How that plan is staged depends on the theme, and themes rotate so no two posts in a row look,
+move, or sound alike:
 
-Scene lengths are beat counts on a 125 bpm grid (or 84 for the calm mood), so every cut lands
-on the music. `scripts/compose.py` then synthesises an original track that follows the plan:
+| Theme | Format | Track |
+|---|---|---|
+| `volt` | chapter cards: numbered chapters with the footage in a card beside a big caption, hard cuts with a flash | half-time trap, 140 bpm |
+| `paper` | a magazine: a cover, a page per chapter with the footage as a photo, an "at a glance" box, a pull-quote; pages push in with a page-flip sound | acoustic indie, 124 bpm |
+| `console` | a terminal session: typed lines, a checklist of steps beside a window of footage, a typed readout, a `[y/n]` prompt; pixelated cuts | chiptune, 144 bpm |
+| `keynote` | a launch keynote: "Introducing", one huge verb per chapter, the footage on a laptop with a slow push-in, crossfades | marimba pop, 112 bpm |
+
+The original navy look, `midnight`, still renders old plans but is out of the rotation.
+
+Scene lengths are beat counts on the theme's tempo grid, so every cut lands on the music. `scripts/compose.py` then synthesises an original track that follows the plan:
 a riser under the hook, a drop on the title, a break under the stats card, a second drop on
 the chapter after it, a fade with the end card. Nothing is sampled or downloaded, so there is
 nothing for LinkedIn to flag. `scripts/render.py` turns plan and track into `demo.mp4` in

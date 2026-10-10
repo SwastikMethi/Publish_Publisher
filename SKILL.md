@@ -1,6 +1,6 @@
 ---
 name: project-publisher
-description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and a designed 35–40 second demo video (hook, title on the beat, numbered chapters with footage in a card beside big captions, stats card, end-card question, original music composed to the cut, sensitive text blurred), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
+description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and a designed 35–40 second demo video (in one of four rotating formats: chapter cards, a magazine, a terminal session, or a launch keynote, each with its own original track composed to the cut, sensitive text blurred), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
 argument-hint: "[Day N/30] [publish]"
 ---
 
@@ -39,8 +39,8 @@ user in one or two lines what you concluded at the end of each stage.
   so, how: a callback in the spark, a contrast, a 'built with Day N', or leave them
   unrelated."
   Record the answer. "Unrelated" or no answer means no cross-reference at all; do not add one
-  on your own. The log also tells you which first-line shapes and hashtags earlier posts used,
-  so you can avoid repeating them.
+  on your own. The log also tells you which first-line shapes, hashtags, and video themes
+  earlier posts used, so you can avoid repeating them.
 
 ## 2. Preflight
 
@@ -206,10 +206,11 @@ the security list. Retake only the rejects.
 ## 8. Record, edit, compose, and render the demo video
 
 Read `references/video-guidelines.md`. The finished video is a designed piece, never a raw
-recording: a hook, a title on the first beat drop, four or five numbered chapters with the
-footage in a card beside a large caption, a stats card with the run's real numbers, an end
-card with Day N/30 and the closing question, a progress bar, an original track composed to
-the same beat grid, 35–40 seconds. Four passes:
+recording: a hook, the title on the first beat drop, four or five chapters of footage with
+captions, the run's real numbers, the closing question, a progress bar, an original track
+composed to the same beat grid, 33–42 seconds. The theme decides the format that stages it
+(chapter cards, a magazine, a terminal session, or a launch keynote) and rotates between
+posts. Four passes:
 
 1. **Record raw footage.** Web app: one Playwright snippet from the demo plan, dry-run first,
    then recorded to `output/media/raw-browser.webm` at 1440 × 900, logging each target's
@@ -219,11 +220,12 @@ the same beat grid, 35–40 seconds. Four passes:
 2. **Write the edit plan.** Tile the raw footage, open one full-resolution frame per
    candidate moment, and write `output/media/plan.json` along the guide's spine: hook (the
    user's spark from stage 1 as one or two big lines), title (name plus the "you give it X"
-   line), four or five chapters of 10–12 beats with a one-word chapter name, a crop region
+   line), four or five chapters with a one-word chapter name, a footage window, a crop region
    chosen from real pixels that excludes title bars, address bars, footers, and usernames,
    and a three- or four-line caption in the post's voice; a stats card of four real numbers
    with the design detail highlighted; the end card with Day N/30 if given and the user's
-   question if given; the music mood. Show the plan to the user in a few lines.
+   question if given; the theme, rotated so it differs from the last two video posts (the
+   guide's Theme section). Show the plan to the user in a few lines.
 3. **Compose the music.** `scripts/compose.py plan.json` writes an original track that
    follows the plan's beats: riser under the hook, drop on the title, break under the stats
    card, second drop after it, fade with the end card. If numpy is missing, fall back as
@@ -343,6 +345,7 @@ design_detail: <the moment, one sentence>
 question: <the closing question, or "none">
 related_to: <earlier project names it referenced, or "none">
 medium: <video | screenshots>
+theme: <the video's theme>   # video posts only
 hashtags: <the last line of the post>
 ---
 
@@ -359,6 +362,6 @@ earlier files. Tell the user the record was written and where.
 - `references/video-guidelines.md` — raw capture (browser via Playwright, full screen for terminal), the video's spine, beat grid, chapters, crop rules, stats card, plan format, compose/redact/render/verify loop, review. Read at stage 8.
 - `references/security-guidelines.md` — what to look for, where, never-open list, OCR scan, final checklist. Read at stage 3 and 11.
 - `scripts/redact.py` — OCR a time window of a recording (or a still) and emit blur boxes for anything on the never-show list. Used at stage 8 and 11.
-- `scripts/compose.py` — compose an original music track to `plan.json`'s beat grid (`--mood energetic|calm`). Used at stage 8.
+- `scripts/compose.py` — compose an original music track to `plan.json`'s beat grid; the plan's theme picks the genre. Used at stage 8.
 - `scripts/render.py` — render `plan.json` into the finished video; `--patch` blurs leftover boxes in a rendered file. Used at stage 8.
 - `assets/music/` — optional licensed tracks, used only when compose.py cannot run or the plan points at one. Read at stage 2.

@@ -179,7 +179,9 @@ it: crop regions are chosen from real pixels, never guessed.
 
 ### The spine
 
-The video has the same spine as the post, in this order. Every part is a plan entry:
+The video has the same spine as the post, in this order. Every part is a plan entry. The
+beat counts below are the cards format's (`volt`); the other themes stage the same entries in
+their own format and length (see Theme below):
 
 ```
 hook     6 beats   the spark as one or two big lines, the "what I built" as a smaller sub-line
@@ -191,13 +193,13 @@ end      8 beats   Day N/30, the theme hashtag, and the post's closing question
 
 Put the stats card after the third or fourth chapter, never last: the music breaks there and
 drops again on the chapter that follows, so the strongest chapter (usually the result) goes
-after it. Total 78-84 beats; at 125 bpm that is 37-40 seconds. Fewer than four chapters
-means the demo plan was too thin; go back to the footage.
+after it. Total 76-84 beats; at the theme's bpm that is 33-42 seconds. Fewer than four
+chapters means the demo plan was too thin; go back to the footage.
 
 ### Beats, not seconds
 
-Pick a bpm with the mood: `energetic` 120-128, `calm` 80-92. Every scene's length is a beat
-count; footage scenes are 10 or 12 beats (4.8-5.8 s at 125 bpm). The speed of a footage
+The bpm comes from the theme (see Theme below). Every scene's length is a beat count;
+footage scenes run about 4.3-6 s across the themes' tempos. The speed of a footage
 scene is not chosen, it is derived: the source window divided by the scene length. So pick
 windows that give 4-8x for terminal work and about 1x for browser interaction, and adjust the
 window, not the speed. A window shorter than the scene plays at 1x and holds its last frame.
@@ -214,7 +216,7 @@ screen: "Scores each job / against what the / resume actually / proves", not "An
 written". No identifiers, no file names, no architecture nouns. The last chapter's caption is
 the design detail or the refusal: the thing the post is about.
 
-Two layouts:
+Two layouts, used by the cards format only:
 
 - `side` (default): a 1180x780 card on the right, caption on the left. For any region that
   is roughly 3:2 or taller: a browser page, a JSON block, a column of terminal output.
@@ -250,13 +252,51 @@ the design detail whenever one is a number ("0 auto-submitted", "1 file changed"
 retries") and set `highlight` to its index so it draws in the accent colour. The optional
 `note` under the numbers is one sentence from the post.
 
-### Music mood
+### Theme
 
-`energetic` for tools, automations, anything that runs or produces; `calm` for reading,
-writing, planning, and design tools. The track is composed to the plan in Pass 3, so the plan
-only names the mood and, optionally, a `seed` so a re-render keeps the same track. A licensed
-track in `assets/music/` can be used instead by pointing `music.file` at it; then the beat grid
-will not match it, which is fine for `calm` and wrong for `energetic`.
+A theme is a whole format, not a skin: how the plan's content is staged, in what order, with
+which transitions and pacing, in which look, over which track. Every track is energetic. The
+same video on every post reads as a template in the feed, so themes rotate.
+
+| `theme` | format | look and cuts | `music.mood` | `bpm` |
+|---|---|---|---|---|
+| `volt` | cards: hook card, title, numbered chapters with the footage in a card beside a big caption, stats, end card | black and electric lime, centred Impact capitals that snap in, hard cuts with a white flash | `trap`, half-time | 140 |
+| `paper` | magazine: a cover (hook as the standfirst, title as the headline), one page per chapter with the footage as a photo on alternating sides, an "at a glance" box, the question as a pull-quote | cream paper, heavy black type and serif body, red accent, pages push in from the right with a page-flip sound | `indie` (strummed acoustic guitar, stomps, claps, glockenspiel) | 124 |
+| `console` | terminal session: the hook typed at a prompt, the name boxed, each chapter as a checklist of steps beside a window of footage with the caption typed as a comment, the stats typed as a readout, the question as a `[y/n]` prompt | green phosphor on black, scanlines, Menlo, pixelated cuts | `chiptune` | 144 |
+| `keynote` | launch keynote: the hook centred a line per beat, "Introducing" and the name, then per chapter the verb alone and huge followed by the footage on a laptop with a slow push-in, the numbers in a grid, the question | light studio grey, Avenir, a blue accent, crossfades | `marimba` pop | 112 |
+
+`midnight` (the original navy cards look, `energetic`, 125 bpm) still renders old plans and any
+plan without a theme, but it is out of the rotation.
+
+Pick it like this:
+
+1. If the user named a theme, use it.
+2. Otherwise read `theme:` from the last two video posts in `~/.project-publisher/posts/`; a
+   record without the line was `midnight`. Do not use either of those.
+3. From what is left, pick the one that fits the project: `console` for developer, terminal,
+   and agent tools; `keynote` for products with a polished UI; `paper` for writing, reading,
+   and everyday tools; `volt` for bold automation and anything fast.
+
+Write `"theme"`, its `bpm`, and its `music.mood` into the plan, and name the theme in the plan
+summary you show the user. The content is the same for every theme (hook, title, chapters
+with footage windows and captions, stats, end question), so the plan does not change shape
+with the theme. What changes:
+
+- Only `volt` (the cards format) reads `beats` and `layout` from the plan. The other formats
+  own their pacing: paper 12-beat pages, console 14-beat chapters, keynote a 2-beat verb plus
+  a 10-beat laptop shot per chapter. Pick footage windows for about those lengths.
+- Captions are re-wrapped by the format, so write them as one short sentence in three or four
+  lines; they become body copy in `paper`, a typed comment in `console`, and one centred line
+  in `keynote`.
+- The keynote push-in zooms inside the crop region, never outside it, so the crop rules below
+  still decide what can be seen.
+
+The plan may still override single colours: `"theme": {"name": "paper", "accent": "0x0057FF"}`.
+
+The track is composed to the plan in Pass 3, so the plan only names the mood and, optionally,
+a `seed` so a re-render keeps the same track. A licensed track in `assets/music/` can be used
+instead by pointing `music.file` at it; then the beat grid will not match it. The `calm` lo-fi
+mood still exists for a user who asks for it, but no theme uses it.
 
 ### The plan file
 
@@ -265,9 +305,10 @@ Write `output/media/plan.json`:
 ```json
 {
   "output": "output/media/demo.mp4",
-  "size": [1920, 1080], "fps": 30, "bpm": 125,
+  "size": [1920, 1080], "fps": 30,
+  "theme": "volt", "bpm": 140,
   "brand": {"name": "AI Job Orient", "day": "Day 2/30"},
-  "music": {"file": "output/media/music.mp3", "mood": "energetic"},
+  "music": {"file": "output/media/music.mp3", "mood": "trap"},
   "hook":  {"lines": ["Applying to jobs", "is a full-time job."],
             "sub": "So I built one that does it. And asks before every submit.", "beats": 6},
   "title": {"text": "AI Job Orient",
@@ -296,10 +337,9 @@ Write `output/media/plan.json`:
 
 `brand.day` and `end.text` are omitted when no challenge day was given; the end card then
 repeats the project name. `end.question` is the post's closing question, and is left out
-when the user did not supply one. `font` may be set if Arial Bold is not wanted; the card
-colours come from `theme.accent` and `theme.accent2` and default to amber and teal. Show the
-plan to the user in a few lines: the hook, the chapter words with their captions, the four
-stats, the question.
+when the user did not supply one. `font` overrides the theme's headline typeface. Show the
+plan to the user in a few lines: the theme, the hook, the chapter words with their captions,
+the four stats, the question.
 
 ## Pass 3: compose, redact, render, verify
 
@@ -368,6 +408,7 @@ ffmpeg -v error -y -i output/media/demo.mp4 -vf "fps=1/2,scale=480:-1,tile=3x3" 
 
 Check, in this order:
 
+- The theme is not one used by either of the last two video posts.
 - The hook reads in one glance and the title lands on the drop (frame at the title's first
   beat shows the name already large, the accent bar sweeping).
 - Every chapter's card shows the thing its caption names, and the text inside the card is
@@ -376,7 +417,7 @@ Check, in this order:
   footer, no username, no blur covering more than a corner.
 - The stats card's numbers match the run; the highlighted one is the design detail.
 - The end card shows the day, the hashtag, and the question.
-- The progress bar is visible along the bottom and the small brand footer only during the
+- The progress bar is visible along the bottom and (cards format) the small brand footer only during the
   chapters.
 - The speed badge shows on fast-forwarded chapters and not on 1x ones.
 
