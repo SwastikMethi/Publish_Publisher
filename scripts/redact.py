@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Find sensitive text in a screen recording and emit blur boxes for render.py.
+"""Find sensitive text in a video or a still, and say where and when it shows.
 
 Samples frames from a time range, runs tesseract on each, matches every word against a set
-of regular expressions, and writes a JSON list of boxes in source pixels with the source-time
-window during which each must be blurred. Deterministic, no network, no browser.
+of regular expressions, and writes a JSON list of boxes in the picture's own pixels, each with
+the stretch of time during which it is on screen. An empty list means the scan found nothing.
+Nothing is blurred: the still behind a box is taken again. Deterministic, no network, no browser.
 
 Usage:
-  redact.py --input rec.mov --start 150 --end 210 --out boxes.json
+  redact.py --input demo.mp4 --start 0 --end 42 --out boxes.json
             [--fps 2] [--pad 10] [--time-pad 0.6] [--pattern REGEX ...] [--user NAME]
 
 Requires: ffmpeg, ffprobe, tesseract on PATH.

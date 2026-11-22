@@ -1,7 +1,7 @@
 # Project Publisher
 
 A Claude Code Skill that turns a finished software project into a ready-to-review LinkedIn
-build-in-public post, with screenshots and a designed 35–40 second demo video already loaded
+build-in-public post, with screenshots and a designed 35–40 second animated demo video already loaded
 into the composer.
 
 Built as Day 1 of a 30-day challenge: one project a day, each posted to LinkedIn. This is the
@@ -9,9 +9,10 @@ tool that publishes the other 29.
 
 There is no application here. The skill is a set of instructions that Claude Code or Codex
 follows using capabilities it already has: reading the repository, running Git and shell
-commands, driving a browser through Playwright MCP, and writing. The only code is two small
-deterministic scripts that compose the music, edit the video with ffmpeg, and blur sensitive text found by OCR;
-neither touches a browser, the network, or anything outside the project's `output/` folder.
+commands, driving a browser through Playwright MCP, and writing. The only code is one web page,
+the animation template that draws the video, and three small deterministic scripts that compose
+the music, join the frames into the video, and scan it for sensitive text by OCR. None of them
+touches the network or anything outside the project's `output/` folder.
 
 ## Workflow
 
@@ -28,17 +29,17 @@ Claude finds the one design detail that makes the project interesting
       ↓
 Application runs locally
       ↓
-Playwright explores it (not recorded)
+Playwright explores it
       ↓
 2–4 screenshots captured and inspected
       ↓
-Raw footage recorded (browser via Playwright, or the whole screen for terminal projects)
+Stills captured: the product in each state worth showing (real output as text if it has no screen)
       ↓
-Edit plan: 4–6 scenes, each zoomed and captioned; fast-forward for terminal work
+Plan: hook, title, 4–5 chapters with their stills and captions, stats, end card, theme
       ↓
-Sensitive text found by OCR and blurred; rendered as hook, title, chapters, stats, end card, with music composed to the cut
+The animation template draws it; stills are checked; music is composed to the same beats
       ↓
-Rendered video OCR-scanned until clean
+Frames rendered, joined with the music, and the finished video OCR-scanned until clean
       ↓
 LinkedIn post written, every claim checked against the repo
       ↓
@@ -53,19 +54,15 @@ Stops. You review and press Post.
 
 ## Requirements
 
-- macOS. Web-app projects would mostly work elsewhere, but the terminal and agent-product
-  path uses `screencapture`, AppleScript, and Terminal.app, and the installer assumes
-  Homebrew.
+- macOS. The animation's themes use typefaces that ship with macOS (SF Pro, Avenir Next,
+  Futura, Charter), and the installer assumes Homebrew.
 - Claude Code or Codex.
-- Playwright MCP with the `devtools` capability enabled, which provides video recording.
-  The installer registers it.
+- Playwright MCP. The installer registers it. No special capability is needed: the video's
+  frames are drawn with its ordinary tools.
 - A browser Playwright can launch (Chromium is downloaded on first use).
-- `ffmpeg` with the `drawtext` filter, plus `tesseract`, for the video edit and the OCR
-  scan. On Homebrew that is `brew install ffmpeg-full tesseract`; the plain `ffmpeg` formula
-  is built without `drawtext`, so captions and title cards fail with it. `ffmpeg-full` is
-  keg-only, so add `/opt/homebrew/opt/ffmpeg-full/bin` to the front of your PATH. The
-  installer checks all of this and prints the exact lines if anything is missing. Python 3
-  as shipped with macOS is enough for `redact.py` and `render.py`; `compose.py`, which writes
+- `ffmpeg` and `tesseract`, for joining the video and the OCR scan: `brew install ffmpeg
+  tesseract`. The installer checks and prints the line if either is missing. Python 3 as
+  shipped with macOS is enough for `redact.py` and `assemble.py`; `compose.py`, which writes
   the music, needs `numpy` (`python3 -m pip install numpy`).
 - Optional: background tracks you are licensed to use, dropped into `assets/music/`. They
   are only used when the composer cannot run or a plan points at one; normally every video
@@ -88,8 +85,8 @@ With no flags it installs for every agent whose CLI is on your PATH. Use `--clau
 
 1. Symlinks this repository into the agent's skills directory (`~/.claude/skills` or
    `~/.codex/skills`), so `git pull` updates the skill in place.
-2. Registers a Playwright MCP server named `playwright` at user scope with video recording
-   enabled and a fixed browser profile, so your LinkedIn login carries across projects.
+2. Registers a Playwright MCP server named `playwright` at user scope with a fixed browser
+   profile, so your LinkedIn login carries across projects.
 
 If an agent already has a `playwright` server configured differently, the installer shows it
 and asks before replacing it. Pass `--force` to replace without asking, or `--skip-mcp` to
@@ -100,7 +97,7 @@ To do it by hand instead:
 
 ```bash
 ln -s ~/Projects/Project_Publisher ~/.claude/skills/project-publisher
-claude mcp add --scope user playwright -- npx @playwright/mcp@latest --caps=devtools --user-data-dir ~/.playwright-mcp/project-publisher --output-dir ~/.playwright-mcp/output
+claude mcp add --scope user playwright -- npx @playwright/mcp@latest --user-data-dir ~/.playwright-mcp/project-publisher --output-dir ~/.playwright-mcp/output
 ```
 
 For Codex, replace the first line's target with `~/.codex/skills/project-publisher` and the
@@ -111,8 +108,7 @@ Start a new session in the agent after installing.
 Notes:
 
 - If a project already has its own `playwright` MCP server configured at project scope, it
-  shadows the user-scope one. If that project entry lacks `--caps=devtools`, video tools will be
-  missing there. The skill detects this and tells you.
+  shadows the user-scope one, and its browser profile will not hold your LinkedIn login.
 - `--output-dir` keeps Playwright's own page snapshots out of your project. Screenshots and video still go to `output/` because the skill passes explicit filenames.
 - A persistent browser profile can be used by one browser at a time. If Playwright fails to
   launch, close other Playwright MCP browsers first.
@@ -154,17 +150,18 @@ output/
     │   ├── 01-main.png
     │   ├── 02-feature.png
     │   └── 03-result.png
-    ├── raw-browser.webm    raw Playwright recording (web apps)
-    ├── raw-screen.mov      raw full-screen recording (terminal projects)
-    ├── plan.json           the edit plan: theme, hook, title, chapters, stats, end card
+    ├── flow/
+    │   ├── index.html      a copy of the animation template
+    │   └── assets/         the stills: captures of the product, or its real output as text
+    ├── plan.json           the plan: theme, hook, title, chapters, stats, end card
     ├── music.mp3           the original track composed for this plan
-    ├── blur-*.json         OCR-found sensitive text, as blur boxes per scene
+    ├── leftover.json       what the OCR scan of the finished video found (empty when clean)
     ├── demo.mp4            the finished video; the only one that is ever uploaded
     └── composer.png        the prepared LinkedIn composer, for the record
 ```
 
-Both screenshots and video are always captured, even though only one is loaded into LinkedIn.
-Raw recordings stay in `output/media/` for the record and never leave it.
+Both screenshots and video are always made, even though only one is loaded into LinkedIn.
+The stills and the plan stay in `output/media/` for the record and never leave it.
 
 Add `output/` to the project's `.gitignore` if you do not want media committed.
 
@@ -183,10 +180,10 @@ others.
   motivation: if you skip the "what got you into this" question, the post opens on what the
   project does rather than on a made-up story.
 - The post, every screenshot, and the complete video are reviewed for secrets, credentials,
-  private URLs, personal data, and internal names before LinkedIn is opened. Terminal footage
-  is additionally OCR-scanned: home paths, usernames, repo URLs, emails, and token shapes are
-  blurred, and the rendered video is scanned again and must come back clean before it counts
-  as reviewed. If anything is uncertain, Claude stops and asks.
+  private URLs, personal data, and internal names before LinkedIn is opened. The finished
+  video is additionally OCR-scanned for home paths, usernames, repo URLs, emails, and token
+  shapes, and must come back clean before it counts as reviewed. Nothing is blurred: a still
+  that shows any of them is taken again. If anything is uncertain, Claude stops and asks.
 - `.env` files, cookies, key material, and credential stores are never read.
 - Playwright only interacts with safe controls while exploring. Nothing labelled delete,
   purchase, pay, logout, or pointing at production is clicked.
@@ -201,68 +198,66 @@ project-publisher/
 ├── agents/
 │   └── openai.yaml                metadata so OpenAI-style agents can also discover the skill
 ├── assets/
+│   ├── animation/index.html       the animation template: draws the whole video from plan.json
 │   └── music/                     optional licensed tracks (gitignored; README explains)
 ├── scripts/
-│   ├── redact.py                  OCR a recording or a still, emit blur boxes for sensitive text
-│   ├── compose.py                 compose an original track to plan.json's beat grid
-│   └── render.py                  render plan.json into the finished video; --patch blurs leftovers
+│   ├── compose.py                 compose an original track to plan.json's beats
+│   ├── assemble.py                join the rendered frames and the music into the finished video
+│   ├── redact.py                  OCR a video or a still and report sensitive text
+│   └── test_assemble.py           checks for assemble.py
 └── references/
     ├── linkedin-style.md          audience, post spine, first line, voice, checklist
     ├── screenshot-guidelines.md   what to capture and how to check it
-    ├── video-guidelines.md        raw capture, edit plan, redact/render/verify, review
+    ├── video-guidelines.md        stills, plan, themes, building, rendering, scan, review
     └── security-guidelines.md     what must never be posted, and the OCR scan
 ```
 
 `SKILL.md` is deliberately short. The reference files hold the detail and are read only at the
 stage that needs them. The scripts are plain Python 3 with no dependencies beyond `ffmpeg`
-and `tesseract` on PATH, except the composer, which needs `numpy`.
+and `tesseract` on PATH, except the composer, which needs `numpy`. The template is one HTML
+file with no dependencies at all.
 
 ## The video
 
-Raw recordings are never posted. The skill records footage (the browser through Playwright
-for web apps; the entire screen for terminal projects, so nothing that opens beside the
-terminal is cut off), then writes an edit plan with the same spine as the post: the spark as
-a hook, the title on the first drop of the music, four or five chapters of footage, one verb
-each, with a caption that carries the meaning (terminal work fast-forwarded, browser
-interaction at 1x), four real numbers from the run with the design detail highlighted, and
+Nothing is recorded. The video is an animation built around real stills of the product:
+captures of its screens shown whole and unchanged, with rings pointing at things. The skill
+captures the product in each state worth showing, usually a before and an after, then writes
+a plan with the same spine as the post: the spark as a hook, the title on the first drop of
+the music, four or five chapters with the product on the right and a caption that carries the
+meaning on the left, four real numbers from the run with the design detail highlighted, and
 the post's closing question. A progress bar runs along the bottom.
 
-How that plan is staged depends on the theme, and themes rotate so no two posts in a row look,
-move, or sound alike:
+One page, `assets/animation/index.html`, draws all of it from that plan. It is a pure function
+of time, so Playwright can draw it frame by frame and every frame comes out the same each
+time. The layout never changes. The theme does, and themes rotate so no two posts in a row
+look or sound alike:
 
-| Theme | Format | Track |
-|---|---|---|
-| `volt` | chapter cards: numbered chapters with the footage in a card beside a big caption, hard cuts with a flash | half-time trap, 140 bpm |
-| `paper` | a magazine: a cover, a page per chapter with the footage as a photo, an "at a glance" box, a pull-quote; pages push in with a page-flip sound | acoustic indie, 124 bpm |
-| `console` | a terminal session: typed lines, a checklist of steps beside a window of footage, a typed readout, a `[y/n]` prompt; pixelated cuts | chiptune, 144 bpm |
-| `keynote` | a launch keynote: "Introducing", one huge verb per chapter, the footage on a laptop with a slow push-in, crossfades | marimba pop, 112 bpm |
+| Theme | Colours | Typeface | Track |
+|---|---|---|---|
+| `aurora` | near-black, violet to blue | SF Pro | marimba pop, 120 bpm |
+| `ember` | warm black, amber to rose | Avenir Next | half-time trap, 140 bpm |
+| `lagoon` | teal-black, mint to sky blue | Futura | electro-pop, 125 bpm |
+| `daylight` | cool off-white, cobalt to violet | Charter | acoustic indie, 124 bpm |
 
-The original navy look, `midnight`, still renders old plans but is out of the rotation.
-
-Scene lengths are beat counts on the theme's tempo grid, so every cut lands on the music. `scripts/compose.py` then synthesises an original track that follows the plan:
-a riser under the hook, a drop on the title, a break under the stats card, a second drop on
-the chapter after it, a fade with the end card. Nothing is sampled or downloaded, so there is
-nothing for LinkedIn to flag. `scripts/render.py` turns plan and track into `demo.mp4` in
-about a minute, so fixes go into the plan, not the output.
+Every length in the plan is a count of beats, so picture and music share one grid.
+`scripts/compose.py` synthesises an original track that follows the plan: a riser under the
+hook, a drop on the title, a break under the stats card, a second drop on the chapter after
+it, a fade with the end card. Nothing is sampled or downloaded, so there is nothing for
+LinkedIn to flag. `scripts/assemble.py` joins the frames and the track into `demo.mp4`, and
+refuses to if a frame is missing. Fixes go into the plan or a still, never into the output.
 
 ## Terminal, CLI, and agent projects
 
-When a project has no web UI, the terminal is the product. The skill opens a clean Terminal.app
-window through AppleScript, gives it a plain prompt, and records the whole screen with the
-macOS built-in `screencapture`, using the window's bounds as the zoom target. Short
-deterministic commands become screenshots. A long agent run that you drive in that window is
-recorded whole; the edit then picks its four to six best moments, zooms into the terminal,
-fast-forwards them, and blurs every path, username, and URL the OCR finds. Playwright is
-still used for the LinkedIn step.
-
-This needs Screen Recording permission for the app that runs Claude Code. The skill checks and
-tells you which app to allow if the capture fails.
+When a project has no screen of its own, its stills are the real output of real runs, saved
+as text. A chapter then shows a terminal-style panel in which those lines appear in order,
+with the ones that matter highlighted. A line is never edited; whole lines may be left out.
+No screen recording is made and no Screen Recording permission is needed.
 
 For agent products, meaning skills, Codex or Claude Code pipelines, and anything with an
 installer that copies into a skills folder, the skill runs only the deterministic layer: help
 text, validators, pure subcommands. It never runs the installer and never invokes the agent flow
-itself, because that may open browsers as you or act on your accounts. If a live demo is worth
-having, it hands you the command and records you running it.
+itself, because that may open browsers as you or act on your accounts. If the output of a real
+run is worth showing, it hands you the command to run with its output saved to a file.
 
 Git worktrees are detected. The branch is named, uncommitted work counts as part of the
 project, and the parent directory is never read.

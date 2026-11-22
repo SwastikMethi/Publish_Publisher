@@ -1,6 +1,6 @@
 ---
 name: project-publisher
-description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots and a designed 35–40 second demo video (in one of four rotating formats: chapter cards, a magazine, a terminal session, or a launch keynote, each with its own original track composed to the cut, sensitive text blurred), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
+description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots, builds a designed 35–40 second animated demo video around real stills of the product (in rotating colour themes, each with its own original track composed to the same beats), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
 argument-hint: "[Day N/30] [publish]"
 ---
 
@@ -8,10 +8,12 @@ argument-hint: "[Day N/30] [publish]"
 
 You are preparing a LinkedIn post about the repository in the current working directory.
 The agent does the reasoning, Git, and shell work. Playwright MCP does every browser action:
-exploring the app, screenshots, raw video, and LinkedIn. The three scripts in `scripts/`
-(`redact.py`, `compose.py`, `render.py`) turn raw footage into the finished video and its
-music; use them as they are and do not write new helper scripts or custom browser automation. Do not click LinkedIn's final
-Post button unless the user asked you to publish.
+exploring the app, screenshots, drawing the video's frames, and LinkedIn. The video is an
+animation built around real stills of the product: the template in `assets/animation/` draws
+it from a plan, and the three scripts in `scripts/` (`compose.py`, `assemble.py`, `redact.py`)
+make its music, join it up, and scan it. Use the template and the scripts as they are; the
+only browser code you write is the two short snippets the video guide gives. Do not click
+LinkedIn's final Post button unless the user asked you to publish.
 
 Work through the stages in order. Each stage ends with a named artifact or decision. Tell the
 user in one or two lines what you concluded at the end of each stage.
@@ -44,27 +46,20 @@ user in one or two lines what you concluded at the end of each stage.
 
 ## 2. Preflight
 
-- Check the Playwright MCP tools are available: you need `browser_navigate` and `browser_start_video`.
-  If either is missing, stop and tell the user to run the installer from the skill's own
-  directory once, then start a new session:
+- Check the Playwright MCP tools are available: you need `browser_navigate` and
+  `browser_run_code_unsafe` (it draws the video's frames). If either is missing, stop and tell
+  the user to run the installer from the skill's own directory once, then start a new session:
   ```
   ~/.claude/skills/project-publisher/install.sh      # or ~/.codex/skills/project-publisher/install.sh
   ```
-  It registers `playwright` with `--caps=devtools` and a fixed profile for whichever agent
-  is present. If `browser_navigate` exists but `browser_start_video` does not, a
-  project-level Playwright server without `--caps=devtools` is shadowing the user-level one,
-  or the existing entry was kept when the installer asked. Say so.
-- Check `ffmpeg`, `ffprobe`, and `tesseract` are on PATH and that ffmpeg has the `drawtext`
-  filter: `which ffmpeg ffprobe tesseract && ffmpeg -hide_banner -filters | grep -q drawtext`.
-  The video edit needs `drawtext` for every card and caption; Homebrew's plain `ffmpeg`
-  formula is built without it. If anything is missing, tell the user to run
-  `brew install ffmpeg-full tesseract` and put `/opt/homebrew/opt/ffmpeg-full/bin` first on
-  PATH (the installer prints the exact line), then continue with screenshots only for this
-  run.
+  It registers `playwright` with a fixed profile for whichever agent is present.
+- Check `ffmpeg`, `ffprobe`, and `tesseract` are on PATH: `which ffmpeg ffprobe tesseract`.
+  If anything is missing, tell the user to run `brew install ffmpeg tesseract`, then continue
+  with screenshots only for this run.
 - Check `python3 -c "import numpy"`. The music is composed by `scripts/compose.py`, which
   needs it. If it is missing, tell the user once (`python3 -m pip install numpy`) and note
   that this run will fall back to a licensed track from `<skill dir>/assets/music/` if one is
-  there, or render silent if not. Do not stop for it.
+  there, or make a silent video if not. Do not stop for it.
 - Confirm you are in a Git repository. If not, continue without Git and say the recency analysis
   will be weaker.
 - `mkdir -p output/media/screenshots`. Everything you produce goes under `output/`.
@@ -145,29 +140,25 @@ scripts (`npm run dev`, `pnpm dev`, `uvicorn ...`, `streamlit run ...`), config 
   propose, and let the user decide. This applies even when the fix is obvious.
 - If the app needs a secret from `.env` that is missing, tell the user and ask them to start
   it themselves. Do not read the file.
-- If the project is a CLI, terminal tool, or library with no web UI, skip stages 6–8's browser
-  steps and follow the terminal variant in `references/video-guidelines.md` and
-  `references/screenshot-guidelines.md`. Terminal capture needs macOS Screen Recording
-  permission for the app running Claude Code; check it works with
-  `screencapture -x /tmp/pp-check.png && rm /tmp/pp-check.png` before planning around it.
-  If it fails, name the app to allow in System Settings › Privacy & Security › Screen
-  Recording: `$TERM_PROGRAM` says which (`vscode`, `Apple_Terminal`, `iTerm.app`), and if it
-  is unset, the Claude desktop app. Ask the user to allow it and restart that app, then
-  continue; do not fall back to Playwright for a terminal product.
+- If the project is a CLI, terminal tool, or library with no screen of its own, skip stage 6.
+  Its stills are the real output of real runs, saved as text: see the no-screen rows in
+  `references/video-guidelines.md` and `references/screenshot-guidelines.md`. Nothing is
+  recorded and no screen permission is needed.
 - If the project is an agent product (a `SKILL.md` at the root or one level down, a
   `.claude/skills/` or `.codex/` directory, an installer that copies into a skills folder, or a
   README that says to invoke it from Claude Code or Codex), treat "run" narrowly:
   - Run only its deterministic layer: `--help`, pure subcommands, validators against the
     templates it ships. Nothing that opens a browser, hits a network, or reads personal files.
   - Never run its installer. It writes outside the repo.
-  - Do not invoke the agent flow yourself. If a live demo of it is worth having, hand the
-    user the exact command to run in a second terminal and record that, per the terminal
-    variant. Otherwise the post shows the CLI layer and the design, which is usually the
-    interesting part anyway.
-  - If the target is this skill itself, the current session is the demo. Ask whether the user
-    started a screen recording before invoking; if not, offer to pause so they can.
+  - Do not invoke the agent flow yourself. If its output is worth showing, hand the user the
+    exact command to run in a second terminal with its output saved to a file
+    (`<command> 2>&1 | tee output/media/flow/assets/NN-run.txt`), and use lines of that file
+    as a `terminal` chapter. Otherwise the post shows the CLI layer and the design, which is
+    usually the interesting part anyway.
+  - If the target is this skill itself, this run is the demo: its stills are the output of
+    its own scripts and the files it writes.
 
-## 6. Explore with Playwright MCP (not recorded)
+## 6. Explore with Playwright MCP
 
 `browser_navigate` to the local URL, `browser_wait_for` the main content, `browser_snapshot`.
 Walk the navigation and the features the brief called interesting. Interact only with safe
@@ -192,7 +183,8 @@ feature the story is about, and stop. Do not investigate features that are not i
 
 Output: a demo plan of 4–6 numbered steps, each a specific action on a specific element,
 following: strongest screen → core interaction → result → one differentiating feature →
-clean end state. Show it to the user in a few lines.
+clean end state. For each step, name the states worth a still: usually the screen before the
+action and the screen after it. Show the plan to the user in a few lines.
 
 ## 7. Capture screenshots
 
@@ -203,42 +195,39 @@ Then for each: set up the state, capture at 1440 × 900 into
 batch at the end and reject any that are blurry, duplicated, half-loaded, or show anything from
 the security list. Retake only the rejects.
 
-## 8. Record, edit, compose, and render the demo video
+## 8. Build the animated demo video
 
-Read `references/video-guidelines.md`. The finished video is a designed piece, never a raw
-recording: a hook, the title on the first beat drop, four or five chapters of footage with
-captions, the run's real numbers, the closing question, a progress bar, an original track
-composed to the same beat grid, 33–42 seconds. The theme decides the format that stages it
-(chapter cards, a magazine, a terminal session, or a launch keynote) and rotates between
-posts. Four passes:
+Read `references/video-guidelines.md`. The finished video is an animation built around real
+stills of the product, never a recording: a hook, the title on the first beat drop, four or
+five chapters with the product on the right and a caption on the left, the run's real
+numbers, the closing question, a progress bar, an original track composed to the same beat
+grid, 33–42 seconds. The layout is always the same; the theme (colours, typeface, track)
+rotates between posts. Four passes:
 
-1. **Record raw footage.** Web app: one Playwright snippet from the demo plan, dry-run first,
-   then recorded to `output/media/raw-browser.webm` at 1440 × 900, logging each target's
-   bounding box and timestamp as it goes. Terminal or agent product: record the *entire*
-   display with `screencapture -v` to `output/media/raw-screen.mov` (never a rectangle; it
-   cuts off whatever opens next to it) and note the terminal and browser window bounds.
-2. **Write the edit plan.** Tile the raw footage, open one full-resolution frame per
-   candidate moment, and write `output/media/plan.json` along the guide's spine: hook (the
-   user's spark from stage 1 as one or two big lines), title (name plus the "you give it X"
-   line), four or five chapters with a one-word chapter name, a footage window, a crop region
-   chosen from real pixels that excludes title bars, address bars, footers, and usernames,
-   and a three- or four-line caption in the post's voice; a stats card of four real numbers
-   with the design detail highlighted; the end card with Day N/30 if given and the user's
-   question if given; the theme, rotated so it differs from the last two video posts (the
-   guide's Theme section). Show the plan to the user in a few lines.
-3. **Compose the music.** `scripts/compose.py plan.json` writes an original track that
-   follows the plan's beats: riser under the hook, drop on the title, break under the stats
-   card, second drop after it, fade with the end card. If numpy is missing, fall back as
-   stage 2 decided and say so.
-4. **Redact, render, verify.** For every terminal scene run `scripts/redact.py` on the
-   source window with `--user $(whoami)` to get blur boxes. Run `scripts/render.py plan.json`;
-   it prints each chapter's derived speed. Then OCR the rendered `output/media/demo.mp4` with
-   `redact.py` at 5 fps; if it reports any boxes, `render.py --patch` them and scan again.
-   The video is not done until a scan of the final file reports `0 boxes`. Tile the final
-   file and Read every sheet against the guide's review list.
+1. **Capture the stills.** The product in each state the demo plan named, usually a before
+   and an after per chapter, into `output/media/flow/assets/`: Playwright screenshots at
+   1200 × 750 for a web app, the emulator's own screenshots for a phone app, the real output
+   of a real run saved as text for a tool with no screen. Stills are used whole; a still
+   that shows anything from the never-show list is taken again.
+2. **Write the plan.** `output/media/plan.json` along the guide's spine: hook (the user's
+   spark from stage 1 as one or two big lines), title (name plus the "you give it X" line),
+   four or five chapters each with a name, a one-sentence caption in the post's voice, its
+   stills and the rings that point at things; a stats card of four real numbers with the
+   design detail highlighted; the end card with Day N/30 if given and the user's question if
+   given; the theme, chosen so it differs from the last two video posts (the guide's Theme
+   section); every part's length in beats. Show the plan to the user in a few lines.
+3. **Build it and look at stills.** Copy `assets/animation/index.html` to
+   `output/media/flow/`, serve `output/media/` on 127.0.0.1, open the page with the guide's
+   snippet, and shorten whatever text it reports as not fitting. Read the stills it saves
+   against the guide's list before rendering anything.
+4. **Compose, render, assemble, scan.** `scripts/compose.py plan.json` writes the track.
+   The guide's second snippet draws the frames, a batch per call. `scripts/assemble.py
+   plan.json` joins frames and music into `output/media/demo.mp4`. Then OCR the finished file
+   with `scripts/redact.py` at 5 fps. The video is not done until that scan reports
+   `0 boxes`; a hit is fixed by retaking the still, never by blurring. Tile the final file
+   and Read every sheet against the guide's list.
 
-If a chapter cannot be made clean in two patch rounds, change its crop or moment in the plan
-and re-render. Rendering takes about a minute; fix the plan rather than the output.
+Fix the plan or a still, then render again; never edit the finished file or the copied page.
 
 ## 9. Write the post
 
@@ -262,8 +251,8 @@ Read `references/security-guidelines.md`. Review the post and every screenshot b
 OCR-scan every screenshot with `scripts/redact.py` the same way as the video (a still is a
 one-frame video). The video's own clean scan from stage 8 counts as its review; quote the
 `0 boxes` line. Produce the six-line checklist from that file. If any line is not a clean yes,
-do not open LinkedIn; describe the concern and wait for the user. A screenshot that fails is
-retaken with the offending window closed, not blurred; blur is for footage only.
+do not open LinkedIn; describe the concern and wait for the user. Nothing is blurred: a
+screenshot or a still that fails is taken again with the cause removed.
 
 ## 12. Choose the medium
 
@@ -272,8 +261,8 @@ interesting part a state, or a transition? Static screens that explain themselve
 screenshots. Interaction, transformation, or something appearing over time favours video.
 Also weigh clarity, uniqueness, information density, and professional look. The designed
 video carries its story in the captions and the stats card, so it usually wins even for
-terminal and agent products; choose screenshots when the product is a single screen and
-nothing in the footage moves or changes. State the choice and the reason in a short paragraph. If it is
+terminal and agent products; choose screenshots when the product is a single screen with one
+state worth showing. State the choice and the reason in a short paragraph. If it is
 a genuine toss-up, ask the user before continuing.
 
 ## 13. Prepare LinkedIn
@@ -294,8 +283,8 @@ Screenshot mode:
 4. `browser_snapshot` and confirm each image is attached to the draft.
 
 Video mode:
-1. Open the video control first and upload `output/media/demo.mp4` (the rendered file, never
-   a raw recording) with `browser_file_upload`.
+1. Open the video control first and upload `output/media/demo.mp4` (the assembled file) with
+   `browser_file_upload`.
 2. `browser_wait_for` LinkedIn's processing to finish; the preview thumbnail appears.
 3. Type the post text into the editor.
 4. `browser_snapshot` and confirm the video preview is present.
@@ -312,7 +301,7 @@ The LinkedIn post is prepared and ready for review.
 Media selected: Video | Screenshots
 Post text:      output/post.md
 Screenshots:    output/media/screenshots/
-Video:          output/media/demo.mp4  (edit plan: output/media/plan.json, music: output/media/music.mp3)
+Video:          output/media/demo.mp4  (plan: output/media/plan.json, music: output/media/music.mp3)
 
 Review the content in the browser and publish when ready.
 ```
@@ -345,7 +334,7 @@ design_detail: <the moment, one sentence>
 question: <the closing question, or "none">
 related_to: <earlier project names it referenced, or "none">
 medium: <video | screenshots>
-theme: <the video's theme>   # video posts only
+theme: <the video's theme, the one word from the plan>   # video posts only
 hashtags: <the last line of the post>
 ---
 
@@ -359,9 +348,10 @@ earlier files. Tell the user the record was written and where.
 
 - `references/linkedin-style.md` — audience, spine, first line, voice, formatting, banned list, checklist. Read at stage 4 and 9.
 - `references/screenshot-guidelines.md` — count, viewport, pre-capture checklist, naming, review. Read at stage 7.
-- `references/video-guidelines.md` — raw capture (browser via Playwright, full screen for terminal), the video's spine, beat grid, chapters, crop rules, stats card, plan format, compose/redact/render/verify loop, review. Read at stage 8.
+- `references/video-guidelines.md` — the stills for each kind of product, the video's spine, beats, chapters and their three stages, stats card, themes, plan format, the two browser snippets, compose/render/assemble/scan, review. Read at stage 8.
 - `references/security-guidelines.md` — what to look for, where, never-open list, OCR scan, final checklist. Read at stage 3 and 11.
-- `scripts/redact.py` — OCR a time window of a recording (or a still) and emit blur boxes for anything on the never-show list. Used at stage 8 and 11.
-- `scripts/compose.py` — compose an original music track to `plan.json`'s beat grid; the plan's theme picks the genre. Used at stage 8.
-- `scripts/render.py` — render `plan.json` into the finished video; `--patch` blurs leftover boxes in a rendered file. Used at stage 8.
+- `assets/animation/index.html` — the animation template: draws the whole video from `plan.json`. Copied to `output/media/flow/` at stage 8, never edited.
+- `scripts/compose.py` — compose an original music track to `plan.json`'s beats; the plan's theme picks the genre. Used at stage 8.
+- `scripts/assemble.py` — join the rendered frames and the music into the finished video; refuses a missing or wrong-sized frame. Used at stage 8.
+- `scripts/redact.py` — OCR a video (or a still) and report anything on the never-show list, with where and when. Used at stage 8 and 11.
 - `assets/music/` — optional licensed tracks, used only when compose.py cannot run or the plan points at one. Read at stage 2.

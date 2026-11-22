@@ -1,430 +1,330 @@
 # Demo video guidelines
 
-Read this before recording. The finished video is a designed piece that has to hold a
-stranger for forty seconds in a feed that autoplays muted: a hook line before anything else,
-the title landing on the first beat of the music, four or five numbered chapters where the
-footage sits in a card beside a large caption, a stats card with counting numbers, and an end
-card that asks a question. Every cut lands on a beat, a progress bar runs along the bottom, and
-an original track is composed to the same beat grid. Thirty-five to forty seconds. It should
-feel like a launch video, not "here is an agent clicking around" and not a raw screen dump.
+Read this before stage 8. The finished video is an animation, not a recording. It has to hold
+a stranger for forty seconds in a feed that autoplays muted: a hook line before anything else,
+the title landing on the first beat of the music, four or five numbered chapters with the
+product on the right and a large caption on the left, a stats card with counting numbers, and
+an end card that asks a question. A progress bar runs along the bottom and an original track
+is composed to the same beat grid. Thirty-three to forty-two seconds.
 
-The work happens in four passes: record raw footage, write an edit plan, compose the music,
-render. Nothing uploaded to LinkedIn is ever the raw recording.
+The product appears as real stills: captures of its screens shown whole and unchanged, or the
+real output of a real run shown as text. Rings point at things. Nothing is redrawn by hand,
+nothing is recorded, and nothing is blurred.
 
-## Pass 1: record raw footage
+One page draws all of it: `assets/animation/index.html`, the template. It reads
+`output/media/plan.json` and is a pure function of time, so frame 300 looks the same every
+time it is drawn. The same plan drives the music, so picture and track cannot drift apart.
 
-### Explore first, record second
+Four passes: capture the stills, write the plan, build it and look at stills, then compose,
+render, assemble and scan.
 
-Never record the discovery session. Explore the app fully, write the demo plan (stage 6),
-then record it once, cleanly. If the take is messy, delete it and record again.
+## Pass 1: capture the stills
 
-### The demo plan
+A still is the product in one state. Most chapters need two: before and after the thing the
+chapter is about. List the states from the demo plan (stage 6) before capturing anything, and
+save each to `output/media/flow/assets/NN-slug.png` (or `.txt`).
 
-4–5 steps in this shape, each a specific action on a specific element. Each step becomes a
-chapter of the finished video with a one-word name, so think in verbs:
+| The product is | Capture with | Notes |
+|---|---|---|
+| A web app | Playwright: `browser_resize` to 1200 × 750, set up the state, `browser_take_screenshot` of the viewport | 1200 × 750 keeps the page's text readable in the video; the post's own screenshots stay 1440 × 900 |
+| A phone app | The emulator's or simulator's own screenshot of the whole screen (`adb exec-out screencap -p > file.png`) | Never a person's real phone |
+| A tool with no screen (command line, library, agent skill) | The real output of a real run, as text: `{ echo '$ <command>'; <command>; } > output/media/flow/assets/NN-slug.txt 2>&1` | Run it from the repository root with relative paths, so no home path is printed. Strip colour codes |
 
-```
-1. Start on the strongest screen, content loaded.
-2. Perform the core interaction.
-3. Show what it produced.
-4. Show one more feature that differentiates the project.
-5. End on a clean, meaningful result screen. Hold for about two seconds.
-```
+Rules for every still:
 
-The plan lines up with the post: what the post calls interesting is what the video shows,
-and the last step is the design detail or the refusal, which is where the video ends.
+- It shows the product doing its job with content loaded: no spinner, empty state, error,
+  cookie banner, tooltip or focus ring, unless that is the feature.
+- It is used whole. Do not crop, retouch or composite a capture. To draw the eye, add a ring
+  in the plan; to bring small text closer on a web capture, add a `focus` in the plan.
+- A line of output is never edited. Whole lines may be deleted to shorten it; keep the
+  untouched output beside it as `NN-slug.full.txt`.
+- Nothing from the never-show list is in it: credentials, tokens, emails, account names,
+  private URLs, home-directory paths, notifications, other windows, the agent's own terminal.
+  A still that shows one is taken again with the cause removed. There is no blur step.
+- Use made-up sample data that cannot be taken for the real thing (a `555` phone number, a
+  name with no account behind it).
 
-### Pacing while recording
+While the state is on screen, note where the things worth pointing at are, in the capture's
+own pixels: for a web page, `await page.locator(...).boundingBox()` gives `x, y, width,
+height` directly; for Android, the `bounds` in a `uiautomator dump`; otherwise read them off
+the capture (the Read tool says by how much it scaled the picture down).
 
-- The hook and title take the first six seconds; the first chapter must show the core value
-  by second ten, so the first recorded moment has to be the product doing its job.
-- Pause about one second after each meaningful change. Use `browser_wait_for` with a time or
-  a text match, not a sleep in Bash.
-- No repeated actions, no back-and-forth navigation, no scrolling unless the content below
-  the fold is the point.
-- Slow steps (a build, a long fetch) are fine in the raw footage; the edit fast-forwards them.
-
-### Never show
-
-Unless it is genuinely the product being demonstrated:
-
-- the Claude Code terminal or any terminal
-- Playwright inspector, debug UI, dev tools, console
-- setup commands, install output, build logs
-- login pages, credentials, API keys, tokens
-- internal or private URLs, hostnames, emails, account names, home-directory paths
-- notifications, OS popups, other windows
-- error states, failed requests, loading failures
-
-For web apps this list is enforced by re-recording. For terminal and agent products the
-terminal *is* the product and will print paths and names you cannot suppress; there the list
-is enforced by the redaction pass in Pass 3. Either way, nothing on this list reaches LinkedIn.
-
-### Web apps: record the browser with Playwright MCP
-
-The Playwright MCP server records natively when started with `--caps=devtools`. Drive the demo
-as one Playwright snippet passed inline to `browser_run_code_unsafe`, so pacing is controlled
-by the snippet and not by tool round trips. The snippet is typed into the tool call, never
-saved to the skill or the project.
-
-```
-browser_resize            1440 × 900
-browser_snapshot          once, to learn roles, names, and text of every target element
-<write the snippet from the plan>
-browser_run_code_unsafe   DRY RUN, not recorded; fix any selector that fails
-browser_navigate          back to the start URL, so the first frame is the clean start state
-browser_wait_for          the start screen's real content, not its heading
-browser_start_video       filename: output/media/raw-browser.webm, size: { width: 1440, height: 900 }
-browser_run_code_unsafe   the same snippet, unchanged
-browser_stop_video
-```
-
-The snippet is one async function of `page`. Use role and text locators, a pause of about
-1000–1500 ms after each visible change, and a 2000 ms hold at the end. After any navigation or
-fetch, wait for the content that proves it finished, not the page heading.
-
-**Log the zoom targets while you record.** Before each click or fill, get the element's
-bounding box and print it with a timestamp; the edit plan uses these as zoom regions:
-
-```js
-async (page) => {
-  const t0 = Date.now();
-  const mark = async (loc, label) => {
-    const b = await loc.boundingBox();
-    console.log(JSON.stringify({ t: (Date.now() - t0) / 1000, label, ...b }));
-  };
-  const city = page.getByRole('textbox', { name: /city/i });
-  await mark(city, 'search');
-  await city.fill('Berlin');
-  await page.keyboard.press('Enter');
-  await page.waitForSelector('text=Berlin, Germany');
-  await page.waitForTimeout(1500);
-  const card = page.getByText('Berlin, Germany').locator('..');
-  await mark(card, 'result');
-  await page.waitForTimeout(1500);
-  await page.getByRole('link', { name: 'Forecast' }).click();
-  await page.waitForTimeout(2000);
-}
-```
-
-Read the logged lines back with `browser_console_messages` and keep them for the plan. The
-recording starts a few seconds before the snippet's first line runs, so the snippet must not
-open with a wait; add the offset you observe to the logged times when you build the plan.
-
-Notes: always pass `filename` and `size` to `browser_start_video` (without `size` it records
-at 800 × 600). The dry run is mandatory. Nothing happens between `browser_start_video` and
-`browser_run_code_unsafe` except the call itself. `browser_start_recording` records actions
-as code, not pixels; do not use it.
-
-### Terminal, CLI, and agent products: record the whole screen
-
-When the project has no web UI, the terminal is the product. Playwright is not involved; use
-the macOS built-ins. This needs Screen Recording permission for the app running Claude Code.
-Check first, and if it fails, stop and tell the user which app to allow under System Settings
-› Privacy & Security › Screen Recording:
-
-```
-screencapture -x /tmp/pp-check.png && rm /tmp/pp-check.png
-```
-
-**Record the entire main display, not a rectangle.** A rectangle cuts off whatever opens
-next to it (a browser window, a dialog), and the edit needs the whole screen to zoom into.
-
-```
-osascript -e 'tell application "System Events" to set frontmost of process "Terminal" to true'
-screencapture -x -v -V <seconds> output/media/raw-screen.mov
-```
-
-Before starting: hide the Dock, turn on Do Not Disturb, close every window that is not part
-of the demo, and set a plain prompt so the shell does not print `user@hostname`:
-
-```
-osascript -e 'tell application "Terminal"
-  set w to do script "cd <repo> && export PS1=\"$ \" && clear && <command>"
-  delay 0.5
-  set b to bounds of front window
-  return (id of front window as text) & "|" & (item 1 of b) & "," & (item 2 of b) & "," & ((item 3 of b) - (item 1 of b)) & "," & ((item 4 of b) - (item 2 of b))
-end tell'
-```
-
-The returned bounds are the zoom target for terminal scenes. If a browser window is part of
-the demo, get its bounds the same way through System Events and use them for browser scenes.
-Bounds are in screen points; the recording is in pixels. On a Retina display multiply by 2
-(check: `ffprobe` width divided by the display's point width).
-
-**Short deterministic commands** (help text, a validator, a scoring command) are screenshots,
-not video.
-
-**A long agent run the user drives.** Give the user the exact command, ask them to run it in
-the demo window, and record the whole run with `-V` set generously. The edit picks moments
-from it; do not compress the whole run into a timelapse.
-
-**Never run an agent product's own flow yourself** to make a video.
-
-Close the demo window afterwards with `tell application "Terminal" to close window id <id>`.
-
-## Pass 2: write the edit plan
-
-Review the raw footage first. Tile it into contact sheets and Read them:
-
-```
-mkdir -p output/media/frames
-ffmpeg -v error -y -i output/media/raw-screen.mov -vf "fps=1/5,scale=480:-1,tile=4x3" output/media/frames/raw%d.png
-```
-
-For a 20-minute recording that is 20 sheets; skim them for the moments that match the demo
-plan, then look closer around each with a denser tile if needed. Then open one full-resolution
-frame from each candidate moment (`ffmpeg -ss <t> -i raw.mov -frames:v 1 frame.png`) and Read
-it: crop regions are chosen from real pixels, never guessed.
+## Pass 2: write the plan
 
 ### The spine
 
-The video has the same spine as the post, in this order. Every part is a plan entry. The
-beat counts below are the cards format's (`volt`); the other themes stage the same entries in
-their own format and length (see Theme below):
+The video has the same spine as the post. Every part is an entry in the plan, and every entry
+states its length in beats:
 
 ```
-hook     6 beats   the spark as one or two big lines, the "what I built" as a smaller sub-line
-title    6 beats   project name; sub-line is the post's "you give it X, it gives you Y"
-01..05   10-12     four or five chapters, one verb each: the demo plan's steps in order
+hook     8 beats   the spark as one or two big lines, and what you built as a smaller line
+title    6 beats   project name; the lines under it are the post's "you give it X, it gives you Y"
+01..05   10-12     four or five chapters, one idea each: the demo plan's steps in order
 stats    8 beats   real numbers from the run, the design detail as the highlighted one
-end      8 beats   Day N/30, the theme hashtag, and the post's closing question
+end      8-10      Day N/30, the theme hashtag, and the post's closing question
 ```
 
 Put the stats card after the third or fourth chapter, never last: the music breaks there and
-drops again on the chapter that follows, so the strongest chapter (usually the result) goes
-after it. Total 76-84 beats; at the theme's bpm that is 33-42 seconds. Fewer than four
-chapters means the demo plan was too thin; go back to the footage.
-
-### Beats, not seconds
-
-The bpm comes from the theme (see Theme below). Every scene's length is a beat count;
-footage scenes run about 4.3-6 s across the themes' tempos. The speed of a footage
-scene is not chosen, it is derived: the source window divided by the scene length. So pick
-windows that give 4-8x for terminal work and about 1x for browser interaction, and adjust the
-window, not the speed. A window shorter than the scene plays at 1x and holds its last frame.
+drops again on the chapter that follows, so the strongest chapter goes after it. Total 76 to
+84 beats. Fewer than four chapters means the demo plan was too thin.
 
 ### Chapters
 
-Each chapter is one verb of the product: Search, Capture, Score, Tailor, Approve. Reads,
-Starts, Clicks, Writes, Loads. The chapter word is drawn in small caps under a big number, so
-keep it to one word.
+Each chapter is one thing the product does. Its fields:
 
-Captions are three or four short lines, 18 characters or fewer each, in the post's voice, and
-they carry the meaning; the footage is texture. Say what the product does, not what is on the
-screen: "Scores each job / against what the / resume actually / proves", not "Analysis JSON
-written". No identifiers, no file names, no architecture nouns. The last chapter's caption is
-the design detail or the refusal: the thing the post is about.
+- `chapter`: one or two words, shown very large: Search, Score, Kind words.
+- `group`: a short label over the number, shared by chapters that belong together.
+- `head`: one sentence saying what the product does here. `sub`: one more, smaller.
+- `chips`: the parts of the product at work in this chapter (a model, a tool, a file).
+- `stage` and its stills: see below.
 
-Two layouts, used by the cards format only:
+Captions carry the meaning; the stills are the evidence. Say what the product does, not what
+is on the screen: "A phone number is hidden before it goes", not "The redaction card opens".
+No identifiers, file names or architecture nouns. Every caption and every number is a claim:
+stage 10 checks them with the post's.
 
-- `side` (default): a 1180x780 card on the right, caption on the left. For any region that
-  is roughly 3:2 or taller: a browser page, a JSON block, a column of terminal output.
-- `wide`: a 1680x720 card across the top, one or two caption lines under it, the second in
-  the accent colour. For terminal output that spans the whole screen width, like a final
-  summary. Use it once, for the last chapter, if at all.
+### The three stages
 
-### Crop regions
+| `stage` | For | Fields | What it shows |
+|---|---|---|---|
+| `phones` | Portrait stills of a phone app | `shots`, each `{slot, src, at, rings}` | Two phones side by side: slot `a` is there from the start, slot `b` slides in when its first shot is due. One slot alone sits in the middle |
+| `window` | Landscape stills of a web or desktop app | `shots`, each `{src, at, focus, rings}` | One card. Shots cross-fade in order. The same `src` twice in a row is one picture with the view moving: give the second a `focus` and the card pushes in on that part |
+| `terminal` | Real output as text | `src` (the `.txt`) or `lines`, and `mark` | A terminal panel. Lines appear in order, a `$ ` line is typed out, and the line numbers in `mark` (from 0) are highlighted |
 
-The crop is in source pixels and is fitted to the card's aspect around its centre, so give
-the region you want to see and let the fit widen it. Choose it from the full-resolution frame
-so that every one of these is outside the region:
-
-- the terminal window's title bar (it prints `user — app — command`)
-- the browser's tab strip, address bar, and any warning banner under it
-- the agent's own footer: status line, "Tip:" lines, token counts
-- the macOS menu bar and Dock
-- any redaction blur that would cover more than a corner of the card
-
-Then check the text that remains is legible when the card is 1180 px wide: for a 3456-wide
-Retina recording that means a region no wider than about 1900 px for terminal text and about
-1500 px for a browser page. If the important text is smaller than that, the region is too
-large; cut it in half and pick the half the caption is about.
-
-A region that cannot be made clean this way (a wall of paths, a blurred command line) is not
-a chapter. Pick another moment.
+`at` is when a shot appears, in beats from the start of its chapter. A ring is `{at, until,
+box}`: `box` is `[x, y, width, height]` in the capture's own pixels, `until` may be left out
+(the ring then stays while its shot does). `focus` is a box of the same kind. Give each still
+two beats or more before the next thing happens, and end each chapter on the result.
 
 ### Stats card
 
-Four numbers from the actual run, each with a two- or three-word label, taken from the
-tracker, the summary the agent printed, the output folder. Never estimates. Make the fourth
-the design detail whenever one is a number ("0 auto-submitted", "1 file changed", "0
-retries") and set `highlight` to its index so it draws in the accent colour. The optional
-`note` under the numbers is one sentence from the post.
+Up to four figures from the actual run, each with a short label, taken from what the product
+printed or wrote. Never estimates. A whole number counts up; a figure with a unit is written
+as text (`"1.7 GB"`, `"20 %"`). Make one of them the design detail whenever it is a number
+("0 auto-submitted", "0 bytes sent") and set `highlight` to its position, from 0. `note` is
+one sentence from the post; put `**` around the part to stress.
 
 ### Theme
 
-A theme is a whole format, not a skin: how the plan's content is staged, in what order, with
-which transitions and pacing, in which look, over which track. Every track is energetic. The
-same video on every post reads as a template in the feed, so themes rotate.
+The layout never changes. A theme is its colours, its display typeface and its track, and
+themes rotate so the posts do not look like one template.
 
-| `theme` | format | look and cuts | `music.mood` | `bpm` |
+| `theme` | Colours | Typeface | `music.mood` | `bpm` |
 |---|---|---|---|---|
-| `volt` | cards: hook card, title, numbered chapters with the footage in a card beside a big caption, stats, end card | black and electric lime, centred Impact capitals that snap in, hard cuts with a white flash | `trap`, half-time | 140 |
-| `paper` | magazine: a cover (hook as the standfirst, title as the headline), one page per chapter with the footage as a photo on alternating sides, an "at a glance" box, the question as a pull-quote | cream paper, heavy black type and serif body, red accent, pages push in from the right with a page-flip sound | `indie` (strummed acoustic guitar, stomps, claps, glockenspiel) | 124 |
-| `console` | terminal session: the hook typed at a prompt, the name boxed, each chapter as a checklist of steps beside a window of footage with the caption typed as a comment, the stats typed as a readout, the question as a `[y/n]` prompt | green phosphor on black, scanlines, Menlo, pixelated cuts | `chiptune` | 144 |
-| `keynote` | launch keynote: the hook centred a line per beat, "Introducing" and the name, then per chapter the verb alone and huge followed by the footage on a laptop with a slow push-in, the numbers in a grid, the question | light studio grey, Avenir, a blue accent, crossfades | `marimba` pop | 112 |
-
-`midnight` (the original navy cards look, `energetic`, 125 bpm) still renders old plans and any
-plan without a theme, but it is out of the rotation.
+| `aurora` | near-black, violet to blue | SF Pro | `marimba` | 120 |
+| `ember` | warm black, amber to rose | Avenir Next | `trap` | 140 |
+| `lagoon` | teal-black, mint to sky blue | Futura | `energetic` | 125 |
+| `daylight` | cool off-white, dark ink, cobalt to violet | Charter | `indie` | 124 |
 
 Pick it like this:
 
 1. If the user named a theme, use it.
-2. Otherwise read `theme:` from the last two video posts in `~/.project-publisher/posts/`; a
-   record without the line was `midnight`. Do not use either of those.
-3. From what is left, pick the one that fits the project: `console` for developer, terminal,
-   and agent tools; `keynote` for products with a polished UI; `paper` for writing, reading,
-   and everyday tools; `volt` for bold automation and anything fast.
+2. Otherwise read the `theme:` line of the last two video posts in
+   `~/.project-publisher/posts/` and take its first word. Do not use either of those.
+3. From what is left, prefer the one the captures stand out against: `daylight` when the
+   product's own screens are dark, a dark theme when they are light.
 
-Write `"theme"`, its `bpm`, and its `music.mood` into the plan, and name the theme in the plan
-summary you show the user. The content is the same for every theme (hook, title, chapters
-with footage windows and captions, stats, end question), so the plan does not change shape
-with the theme. What changes:
-
-- Only `volt` (the cards format) reads `beats` and `layout` from the plan. The other formats
-  own their pacing: paper 12-beat pages, console 14-beat chapters, keynote a 2-beat verb plus
-  a 10-beat laptop shot per chapter. Pick footage windows for about those lengths.
-- Captions are re-wrapped by the format, so write them as one short sentence in three or four
-  lines; they become body copy in `paper`, a typed comment in `console`, and one centred line
-  in `keynote`.
-- The keynote push-in zooms inside the crop region, never outside it, so the crop rules below
-  still decide what can be seen.
-
-The plan may still override single colours: `"theme": {"name": "paper", "accent": "0x0057FF"}`.
-
-The track is composed to the plan in Pass 3, so the plan only names the mood and, optionally,
-a `seed` so a re-render keeps the same track. A licensed track in `assets/music/` can be used
-instead by pointing `music.file` at it; then the beat grid will not match it. The `calm` lo-fi
-mood still exists for a user who asks for it, but no theme uses it.
+Write the theme, its `bpm` and its `music.mood` into the plan, and name the theme when you
+show the plan to the user.
 
 ### The plan file
 
-Write `output/media/plan.json`:
+Write `output/media/plan.json`. A real one, shortened to one chapter:
 
 ```json
 {
   "output": "output/media/demo.mp4",
   "size": [1920, 1080], "fps": 30,
-  "theme": "volt", "bpm": 140,
-  "brand": {"name": "AI Job Orient", "day": "Day 2/30"},
-  "music": {"file": "output/media/music.mp3", "mood": "trap"},
-  "hook":  {"lines": ["Applying to jobs", "is a full-time job."],
-            "sub": "So I built one that does it. And asks before every submit.", "beats": 6},
-  "title": {"text": "AI Job Orient",
-            "sub": ["Finds the jobs, scores them, tailors your resume,",
-                    "and waits for your yes before anything is submitted."], "beats": 6},
+  "theme": "aurora", "bpm": 120,
+  "brand": {"name": "Kids Chat", "day": "Day 23/30"},
+  "badge": "Runs on the phone",
+  "music": {"file": "output/media/music.mp3", "mood": "marimba", "seed": 23},
+  "hook": {"lines": ["Kids can't avoid tech.", "Can it keep them safe?"],
+           "sub": "I took the small on-device models from my keyboard\nand put them in a chat app for children.",
+           "beats": 8},
+  "title": {"text": "Kids Chat",
+            "sub": ["A chat app demo for children, with 12 small AI models.",
+                    "Every message is checked on the phone before it is sent."],
+            "beats": 6},
   "scenes": [
-    {"type": "footage", "layout": "side", "chapter": "Search",
-     "src": "output/media/raw-screen.mov", "start": 118.0, "end": 141.0,
-     "crop": {"x": 1480, "y": 300, "w": 1900, "h": 1260},
-     "caption": ["Searches LinkedIn", "and Naukri, logs", "every posting"],
-     "beats": 10, "blur": "output/media/blur-118-141.json"},
-    {"type": "footage", "layout": "side", "chapter": "Score", "...": "..."},
-    {"type": "stats", "label": "This run, start to finish",
-     "items": [[4, "postings found"], [3, "shortlisted"], [1, "below threshold"], [0, "auto-submitted"]],
-     "highlight": 3, "note": "Every 'Awaiting approval' status still needs a human yes.", "beats": 8},
-    {"type": "footage", "layout": "wide", "chapter": "Approve",
-     "src": "output/media/raw-screen.mov", "start": 466.0, "end": 490.0,
-     "crop": {"x": 0, "y": 60, "w": 3456, "h": 1480},
-     "caption": ["Three tailored packages wait for approval.", "Nothing goes out without my yes."],
-     "beats": 10, "blur": "output/media/blur-466-490.json"}
+    {"type": "chapter", "chapter": "Private", "group": "Before it is sent", "beats": 10,
+     "head": "A phone number is hidden before it goes.",
+     "sub": "The child sees the safer message first, and chooses.",
+     "chips": ["Redact"], "stage": "phones",
+     "shots": [
+       {"slot": "a", "src": "assets/03-card.png", "at": 0,
+        "rings": [{"at": 1.6, "until": 3.8, "box": [85, 1790, 1275, 200]},
+                  {"at": 3.8, "until": 5.4, "box": [85, 2020, 1275, 190]}]},
+       {"slot": "b", "src": "assets/04-sent.png", "at": 5.4,
+        "rings": [{"at": 6.2, "box": [340, 2530, 940, 190]}]}
+     ]},
+    {"type": "stats", "label": "What stands between a child and send",
+     "items": [[12, "small models, all of them on the phone"], [5, "checks, from unkind words to nudity"],
+               [0, "bytes sent while the models work"], [1, "phone: a demo with two pretend users"]],
+     "highlight": 2,
+     "note": "One rule sits under all of it. **What cannot be checked is not sent.**",
+     "beats": 8}
   ],
-  "end": {"text": "Day 2/30", "sub": "#buildinpublic",
-          "question": "Would you let it press Apply for you?", "beats": 8}
+  "end": {"text": "Day 23/30", "sub": "#BuildInPublic",
+          "question": "Would you want this for a child you know?", "accent": "a child you know?",
+          "note": "Small models on the phone, no cloud AI.",
+          "chips": ["Toxic", "Redact", "Moderator"], "beats": 10}
 }
 ```
 
-`brand.day` and `end.text` are omitted when no challenge day was given; the end card then
-repeats the project name. `end.question` is the post's closing question, and is left out
-when the user did not supply one. `font` overrides the theme's headline typeface. Show the
-plan to the user in a few lines: the theme, the hook, the chapter words with their captions,
-the four stats, the question.
+A `window` chapter and a `terminal` chapter, in the same place:
 
-## Pass 3: compose, redact, render, verify
+```json
+{"type": "chapter", "chapter": "Split", "group": "The answer", "beats": 10,
+ "head": "It shows what each person pays.", "sub": "And the same amount rounded up, for cash.",
+ "chips": ["JavaScript"], "stage": "window",
+ "shots": [
+   {"src": "assets/02-split.png", "at": 0},
+   {"src": "assets/02-split.png", "at": 3, "focus": [596, 125, 434, 275],
+    "rings": [{"at": 5, "box": [640, 179, 342, 78]}]}
+ ]},
+{"type": "chapter", "chapter": "Check", "group": "From the command line", "beats": 12,
+ "head": "One command checks a template before it ships.", "sub": "It names the line that is wrong.",
+ "chips": ["Python"], "stage": "terminal", "src": "assets/05-check.txt", "mark": [3]}
+```
 
-Four script calls, all deterministic, all in the skill's `scripts/` directory. They need
-`ffmpeg` with the `drawtext` filter, `ffprobe`, `tesseract`, and Python 3 with `numpy` (the
-music only). On Homebrew: `brew install ffmpeg-full tesseract`, then
-`export PATH=/opt/homebrew/opt/ffmpeg-full/bin:$PATH`, and `python3 -m pip install numpy`.
-The plain `ffmpeg` formula lacks `drawtext` and every render fails at the hook card.
+The rest of the fields:
 
-**Compose the music.** The track follows the plan's beat grid: a filtered intro and riser
-under the hook, a drop on the title's first frame, the groove under the chapters, a break with
-a riser under the stats card, a second drop on the chapter after it, a tail that fades with
-the end card. Everything is synthesised, so it is original and safe to post.
+- `src` paths are relative to `output/media/flow/`. `output` and `music.file` are relative to
+  the repository root, where the scripts are run from.
+- `badge` is one chip shown in every chapter, for the thing true of all of them. Leave it out
+  if there is none.
+- `brand.day` and `end.text` are left out when no challenge day was given. `end.question` is
+  the post's closing question and is left out when the user gave none; the end card then
+  shows the project name. `end.accent` is the part of the question drawn in the accent
+  colours; `title.accent` does the same for the name (by default its last word).
+- `\n` in a `sub` breaks the line there.
+- `music.seed` keeps the same track on a re-run. A licensed track in `assets/music/` can be
+  used by pointing `music.file` at it; then the beats will not match it.
+
+Show the plan to the user in a few lines: the theme, the hook, the chapter names with their
+`head` lines, the four stats, the question.
+
+## Pass 3: build it and look at stills
+
+```
+mkdir -p output/media/flow output/media/frames output/media/stills
+cp <skill dir>/assets/animation/index.html output/media/flow/index.html
+python3 -m http.server <port> --bind 127.0.0.1 --directory output/media     # in the background
+```
+
+Open the page in its own tab, at the video's size, and ask it whether everything fits. Pass
+this to `browser_run_code_unsafe`; it also saves a still every two seconds:
+
+```js
+async (page) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('http://127.0.0.1:<port>/flow/index.html?f=0');
+  const info = await page.evaluate(() => window.ready);
+  for (let n = 0, t = 1; t < info.seconds; n++, t += 2) {
+    await page.evaluate(t => window.renderAt(t), t);
+    await page.screenshot({ path: '<absolute path>/output/media/stills/s' + String(n).padStart(2, '0') + '.png', scale: 'css' });
+  }
+  return info;
+}
+```
+
+`info.warnings` lists every text that does not fit its place. Shorten that text in the plan
+and run it again until the list is empty. If the call fails, the page says why in red at its
+top left (a missing capture, a plan that is not valid JSON).
+
+Then tile the stills and Read every sheet:
+
+```
+ffmpeg -v error -y -i output/media/stills/s%02d.png -vf "scale=640:-1,tile=3x4" output/media/stills/sheet%d.png
+```
+
+Check, in this order:
+
+- The first still shows the hook's first line. A feed uses the first frame as the thumbnail.
+- Each chapter's still shows the thing its caption names, and each ring sits on the thing it
+  is meant to point at. A ring that is off is a wrong `box`; measure again.
+- Text inside a capture that the caption depends on can be read on the sheet. If it cannot,
+  add a `focus` (window) or retake the capture closer.
+- The stats match the run, and the highlighted one is the design detail.
+- The end card shows the day, the hashtag and the question.
+- Nothing from the never-show list is in any still.
+
+Change the plan, never the page: the copy in `output/media/flow/` stays identical to the
+template. If a product needs something the plan cannot say, tell the user what is missing
+(that is a change to the skill, not to this video) and make the video with what the plan can
+say, or choose screenshots at stage 12.
+
+## Pass 4: compose, render, assemble, scan
+
+The scripts are in the skill's `scripts/` directory and are run from the repository root.
+They need `ffmpeg`, `ffprobe`, `tesseract`, and Python 3 with `numpy` (the music only).
+
+**Compose the music.** The track follows the plan's beats: a riser under the hook, a drop on
+the title's first frame, the groove under the chapters, a break under the stats card, a second
+drop on the chapter after it, a tail that fades with the end card. Every note is synthesised,
+so it is original and safe to post.
 
 ```
 python3 <skill dir>/scripts/compose.py output/media/plan.json
 ```
 
-It writes `music.file` (default `output/media/music.mp3`) and prints the section map. If
-`numpy` is missing it says so; then either install it or point `music.file` at a licensed
-track from `assets/music/`, and say in the review which one happened. Never render silent
-without telling the user.
+It writes `music.file` and prints the section map. If `numpy` is missing it says so; then
+install it, or point `music.file` at a licensed track in `assets/music/`, and say in the
+review which happened. Never ship a silent video without telling the user.
 
-**Redact every terminal scene.** OCR the source window and produce blur boxes for anything
-on the never-show list. Pass the user's login name so it is caught even when OCR misreads it:
+**Render the frames.** After any change to the plan or a capture, start again from frame 0.
+Pass this to `browser_run_code_unsafe` with `from` set to 0; it draws frames for forty seconds
+and returns where it stopped. Call it again with `from` set to the `next` it returned, until
+`done` is true. About ten frames a second: three or four calls for a forty-second video.
 
-```
-python3 <skill dir>/scripts/redact.py --input output/media/raw-screen.mov \
-        --start 118 --end 141 --user $(whoami) --out output/media/blur-118-141.json
-```
-
-It samples four frames per second, so a minute of source takes about a minute on a Mac.
-Browser scenes normally need no redaction, but run it if the app shows accounts or data.
-
-**Render.**
-
-```
-python3 <skill dir>/scripts/render.py output/media/plan.json
-```
-
-It prints one line per scene with its derived speed and blur count, then the total. A total
-outside 30-45 s gets a note; fix the beats in the plan.
-
-**Verify the output by OCR, then patch.** The rendered file is what ships, so scan it, not
-the sources. Anything found is blurred in place and the scan is repeated until it is clean:
-
-```
-python3 <skill dir>/scripts/redact.py --input output/media/demo.mp4 --start 0 --end <duration> \
-        --fps 5 --ocr-scale 0.6 --user $(whoami) --out output/media/leftover.json
-python3 <skill dir>/scripts/render.py --patch output/media/demo.mp4 output/media/leftover.json output/media/demo-clean.mp4
-mv output/media/demo-clean.mp4 output/media/demo.mp4
+```js
+async (page) => {
+  let from = 0;
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  if (from === 0) await page.goto('http://127.0.0.1:<port>/flow/index.html?f=0');
+  const info = await page.evaluate(() => window.ready);
+  if (info.warnings.length) return info;
+  const started = Date.now();
+  while (from < info.frames && Date.now() - started < 40000) {
+    await page.evaluate(f => window.renderFrame(f), from);
+    await page.screenshot({ path: '<absolute path>/output/media/frames/f' + String(from).padStart(5, '0') + '.png', scale: 'css' });
+    from++;
+  }
+  return { next: from, of: info.frames, done: from >= info.frames };
+}
 ```
 
-Repeat the scan. Only a scan that reports `0 boxes` clears the video for stage 11. If two
-patch rounds do not get there, something in a scene is wrong (a wall of paths, a credentials
-screen): change that chapter's crop or moment in the plan and re-render rather than blurring
-half the card.
-
-## Review the finished video
-
-Tile it and Read every sheet:
+**Assemble.**
 
 ```
-ffmpeg -v error -y -i output/media/demo.mp4 -vf "fps=1/2,scale=480:-1,tile=3x3" output/media/frames/final%d.png
+python3 <skill dir>/scripts/assemble.py output/media/plan.json
 ```
 
-Check, in this order:
+It checks that every frame is there and is the plan's size, then writes `output/media/demo.mp4`
+with the music cut to length and faded out. If it refuses, it says which frame or which part
+of the plan is wrong; fix that and run it again. Do not join the frames by hand.
 
-- The theme is not one used by either of the last two video posts.
-- The hook reads in one glance and the title lands on the drop (frame at the title's first
-  beat shows the name already large, the accent bar sweeping).
-- Every chapter's card shows the thing its caption names, and the text inside the card is
-  legible on the 480-px tile; if it is not, the crop is too large.
-- Nothing inside any card is from the never-show list: no title bar, no address bar, no
-  footer, no username, no blur covering more than a corner.
-- The stats card's numbers match the run; the highlighted one is the design detail.
-- The end card shows the day, the hashtag, and the question.
-- The progress bar is visible along the bottom and (cards format) the small brand footer only during the
-  chapters.
-- The speed badge shows on fast-forwarded chapters and not on 1x ones.
+**Scan the finished file.** The file is what ships, so scan it, not the stills:
 
-Play the file once: the drop lands on the title, the break lands on the stats card, the
-music is the only audio and sits at a normal level (it is normalised to -14 LUFS). Delete
-`output/media/frames/` after review. Fix the plan and re-render rather than editing the
-output; a render takes about a minute.
+```
+python3 <skill dir>/scripts/redact.py --input output/media/demo.mp4 --start 0 --end <seconds> \
+        --fps 5 --user $(whoami) --out output/media/leftover.json
+```
 
-The raw recordings (`raw-screen.mov`, `raw-browser.webm`) and `music.mp3` stay in
-`output/media/` for the record but are never uploaded. LinkedIn gets `demo.mp4` only.
+Only a scan that reports `0 boxes` clears the video for stage 11. A hit means a still shows
+something from the never-show list. Find it (the scan gives the time and the place), then
+retake that capture, delete that line of output, or change the sample data; render, assemble
+and scan again. If the only hits are the product's own made-up sample data and the chapter
+is about that data (an invented address being masked), name each hit to the user and go on
+only with their yes.
+
+**Review.** Tile the finished file and Read every sheet against the Pass 3 list:
+
+```
+ffmpeg -v error -y -i output/media/demo.mp4 -vf "fps=1/2,scale=640:-1,tile=3x4" output/media/stills/final%d.png
+```
+
+Then stop the local server, close the animation's tab, and delete `output/media/frames/` and
+`output/media/stills/`. The plan, the captures, the page and `music.mp3` stay in
+`output/media/` for the record. LinkedIn gets `demo.mp4` only.

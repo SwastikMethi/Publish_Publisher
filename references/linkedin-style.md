@@ -107,14 +107,14 @@ If they said yes, they also said how. Keep it to one sentence, in the slot they 
 - a callback in the spark: "After building a weather dashboard that needed no API key, I
   wanted to see how far 'no backend' could go."
 - a contrast: "Yesterday's project was all UI. This one has none."
-- built with: "The demo video in this post was recorded by the skill I built on Day 1."
+- built with: "The demo video in this post was made by the skill I built on Day 1."
 
 Name the earlier project by what it is, not by its day number alone. "Day 2" means nothing
 to a stranger; "the weather dashboard" does.
 
 ## The post and the media
 
-The post goes out with an edited video or two to four screenshots. They are read together,
+The post goes out with an animated video or two to four screenshots. They are read together,
 so they share a voice but never describe each other.
 
 - The post does not narrate its attachments. No "see the video below", "screenshots
@@ -126,8 +126,8 @@ so they share a voice but never describe each other.
   scene captions are written in the same voice as the post: one short plain sentence each,
   present tense, no identifiers. If a caption would not fit in the post, it does not fit on
   the video. Write the post first; the captions come from it.
-- Do not write the post around what was easiest to record. If the interesting detail did not
-  make it into the footage, it still leads the post; the video shows the product, the post
+- Do not write the post around what was easiest to capture. If the interesting detail did not
+  make it into the video, it still leads the post; the video shows the product, the post
   carries the idea.
 
 ## Voice

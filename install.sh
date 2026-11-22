@@ -8,7 +8,7 @@ skill_name="project-publisher"
 
 profile_dir="$HOME/.playwright-mcp/project-publisher"
 output_dir="$HOME/.playwright-mcp/output"
-playwright_cmd=(npx @playwright/mcp@latest --caps=devtools --user-data-dir "$profile_dir" --output-dir "$output_dir")
+playwright_cmd=(npx @playwright/mcp@latest --user-data-dir "$profile_dir" --output-dir "$output_dir")
 
 targets=()
 skip_mcp=false
@@ -19,7 +19,7 @@ usage() {
 Usage: ./install.sh [--claude] [--codex] [--skip-mcp] [--force]
 
 Symlinks this repository into the skills directory of each selected agent and
-registers a user-scoped Playwright MCP server with video recording enabled.
+registers a user-scoped Playwright MCP server with a fixed browser profile.
 With no target flag, installs for every agent whose CLI is on PATH.
 
 Options:
@@ -92,15 +92,17 @@ install_claude() {
 
   local existing
   if existing="$(claude mcp get playwright 2>/dev/null)"; then
-    if grep -q -- '--caps=devtools' <<<"$existing" && grep -q -- "$profile_dir" <<<"$existing"; then
-      echo "  mcp:   playwright already registered with video enabled"
+    # An entry that uses this profile is ours, with or without the --caps=devtools that older
+    # versions of this installer added for screen recording; the skill no longer needs it.
+    if grep -q -- "$profile_dir" <<<"$existing"; then
+      echo "  mcp:   playwright already registered"
       return 0
     fi
     confirm_replace "Claude Code" "$(grep -E '^\s*(Args|Command):' <<<"$existing" | tr -s ' ' | tr '\n' ' ')" || return 0
     claude mcp remove playwright --scope user >/dev/null 2>&1 || claude mcp remove playwright >/dev/null 2>&1 || true
   fi
   claude mcp add --scope user playwright -- "${playwright_cmd[@]}" >/dev/null
-  echo "  mcp:   registered playwright (user scope, --caps=devtools)"
+  echo "  mcp:   registered playwright (user scope)"
 }
 
 install_codex() {
@@ -111,52 +113,42 @@ install_codex() {
 
   local existing
   if existing="$(codex mcp get playwright 2>/dev/null)"; then
-    if grep -q -- '--caps=devtools' <<<"$existing" && grep -q -- "$profile_dir" <<<"$existing"; then
-      echo "  mcp:   playwright already registered with video enabled"
+    # An entry that uses this profile is ours, with or without the --caps=devtools that older
+    # versions of this installer added for screen recording; the skill no longer needs it.
+    if grep -q -- "$profile_dir" <<<"$existing"; then
+      echo "  mcp:   playwright already registered"
       return 0
     fi
     confirm_replace "Codex" "$(grep -iE 'args|command' <<<"$existing" | tr -s ' ' | tr '\n' ' ')" || return 0
     codex mcp remove playwright >/dev/null 2>&1 || true
   fi
   codex mcp add playwright -- "${playwright_cmd[@]}" >/dev/null
-  echo "  mcp:   registered playwright (--caps=devtools)"
+  echo "  mcp:   registered playwright"
 }
 
-# check_media_tools: the video edit needs ffmpeg with drawtext, ffprobe, and tesseract.
-# Homebrew's plain ffmpeg formula is built without drawtext; ffmpeg-full has it but is
-# keg-only, so it must be put on PATH by hand.
+# check_media_tools: joining the video needs ffmpeg and ffprobe, the OCR scan needs tesseract.
+# Any ffmpeg build will do: the video's text is drawn by the browser, not by ffmpeg.
 check_media_tools() {
   echo "Media tools"
   local missing=()
-  local full=/opt/homebrew/opt/ffmpeg-full/bin
+  command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null || missing+=(ffmpeg)
   command -v tesseract >/dev/null || missing+=(tesseract)
-  # Buffer the filter list first: with pipefail on, grep -q closing the pipe early would
-  # make ffmpeg exit 141 and fail the whole check even when drawtext is present.
-  has_drawtext() { local f; f=$("$1" -hide_banner -filters 2>/dev/null || true); grep -qE '^ *[A-Z.]+ +drawtext ' <<<"$f"; }
-  if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null && has_drawtext ffmpeg; then
-    echo "  ffmpeg: ok (drawtext present)"
-  elif [[ -x "$full/ffmpeg" ]] && has_drawtext "$full/ffmpeg"; then
-    echo "  ffmpeg: ffmpeg-full is installed but not first on PATH. Add this to your shell profile:" >&2
-    echo "          export PATH=$full:\$PATH" >&2
-  else
-    missing+=(ffmpeg-full)
-  fi
   if ((${#missing[@]} > 0)); then
     echo "  missing: ${missing[*]}. Install with:" >&2
     echo "          brew install ${missing[*]}" >&2
-    [[ " ${missing[*]} " == *" ffmpeg-full "* ]] && echo "          export PATH=$full:\$PATH" >&2
     echo "  Without these the skill still runs, but posts get screenshots only, no video." >&2
   else
+    echo "  ffmpeg: ok"
     echo "  tesseract: ok"
   fi
   # compose.py writes the music and needs numpy; without it the video falls back to a
-  # licensed track from assets/music/ or renders silent.
+  # licensed track from assets/music/ or is silent.
   if python3 -c 'import numpy' 2>/dev/null; then
     echo "  numpy: ok (music composer)"
   else
     echo "  numpy: missing. The music composer needs it:" >&2
     echo "          python3 -m pip install numpy" >&2
-    echo "  Without it videos use a track from assets/music/ if present, otherwise render silent." >&2
+    echo "  Without it videos use a track from assets/music/ if present, otherwise they are silent." >&2
   fi
 }
 
