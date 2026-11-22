@@ -127,8 +127,9 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);color:
 
 /* stats */
 .sLabel{left:140px;top:150px;font:800 28px var(--mono);letter-spacing:.2em;text-transform:uppercase}
-.stat{position:absolute;top:290px;width:400px}
-.stat .n{font-family:var(--display);font-weight:800;font-size:170px;letter-spacing:-.045em;line-height:1;white-space:nowrap}
+.stat{position:absolute;top:290px}
+.stat .n{font-family:var(--display);font-weight:800;font-size:170px;letter-spacing:-.045em;line-height:1;white-space:nowrap;
+  height:170px;display:flex;align-items:flex-end}   /* a figure set smaller still stands on the same line */
 .stat .n small{font-size:64px;letter-spacing:-.02em;margin-left:8px}
 .stat .l{margin-top:22px;font:600 34px/1.22 var(--sans);color:var(--ink3)}
 .stat.hl .n{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -323,8 +324,9 @@ function terminal(c, s) {
   [20, 44, 68].forEach(x => { bar.appendChild(el('i')).style.left = x + 'px'; });
   const body = b.appendChild(el('div', 'tbody')), list = body.appendChild(el('div', 'tlines'));
   const longest = Math.max(1, ...c.lines.map(l => l.length));
-  // As large as lets the longest line fit; below 18 px a long line wraps instead.
-  list.style.fontSize = Math.max(18, Math.min(30, Math.floor((w - 84) / (longest * .61)))) + 'px';
+  // As large as lets the longest line fit, but never under 24 px, which is as small as reads in
+  // a feed: a line too long for that wraps, whole.
+  list.style.fontSize = Math.max(24, Math.min(30, Math.floor((w - 84) / (longest * .61)))) + 'px';
   const mark = new Set(c.mark || []);
   const from = s.s + BEAT, span = Math.max(BEAT, s.e - s.s - 4 * BEAT), step = Math.min(BEAT, span / c.lines.length);
   const rows = c.lines.map((text, i) => {
@@ -426,10 +428,12 @@ function statsScene(s, spec) {
   const items = (spec.items || []).slice(0, 4), gap = items.length > 3 ? 425 : items.length === 3 ? 560 : 800;
   const stats = items.map(([value, text], k) => {
     const e = scene.appendChild(el('div', 'stat' + (k === spec.highlight ? ' hl' : '')));
-    e.style.left = (140 + k * gap) + 'px';
+    e.style.left = (140 + k * gap) + 'px'; e.style.width = (gap - 25) + 'px';
     const m = String(value).match(/^([\d.,]+)\s*(.*)$/) || [0, String(value), ''];
     const n = e.appendChild(el('div', 'n')), num = n.appendChild(document.createTextNode(m[1]));
     if (m[2]) n.appendChild(el('small', '', m[2]));
+    fit(n, gap - 25, 80);          // a long figure ("33.80") is set smaller, not cut off
+    tooBig(`stats figure "${value}"`, n.scrollWidth, gap - 25);
     e.appendChild(el('div', 'l', text));
     return {e, num, shown: m[1], counts: /^\d+$/.test(m[1]) && +m[1] > 1};    // whole numbers count up
   });
