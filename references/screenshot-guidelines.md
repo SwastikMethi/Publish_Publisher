@@ -36,7 +36,7 @@ Check via `browser_snapshot` or a quick look, then fix, then capture:
 - No terminal windows. When the product has no screen of its own (a command-line tool, a
   library, an agent skill), its screenshots are not pictures of a terminal: they are the
   stills of the video's `terminal` chapters, which show the real output of a real run beside
-  its caption. Take them in stage 8, after the stills have passed review: copy the still in
+  its caption. Take them at the end of stage 8, once the finished video's scan is clean: copy the still in
   which the panel is complete from `output/media/stills/` to `output/media/screenshots/`.
   Good subjects: the `--help` output, a validator run against a shipped template, one test
   run passing. No `user@hostname`, no absolute paths under the home directory.

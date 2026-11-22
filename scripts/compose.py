@@ -18,7 +18,7 @@ Moods:
   indie      124 bpm acoustic indie: strummed guitar, stomps and claps, tambourine, glockenspiel,
              a page-flip on every cut.
   chiptune   144 bpm 8-bit: pulse-wave lead, fast arpeggios, triangle bass, noise drums.
-  marimba    112 bpm launch-video pop: stomps and claps, marimba riff, plucked bass, whistle.
+  marimba    120 bpm launch-video pop: stomps and claps, marimba riff, plucked bass, whistle.
 
 With no --mood and no music.mood, the plan's theme picks its paired track (THEME_MOOD).
 
@@ -640,7 +640,7 @@ def marimba(tr, secs, total_beats, rng):
 
 MOODS = {"energetic": energetic, "calm": calm, "trap": trap, "indie": indie, "chiptune": chiptune,
          "marimba": marimba}
-BPM = {"energetic": 125, "calm": 84, "trap": 140, "indie": 124, "chiptune": 144, "marimba": 112}
+BPM = {"energetic": 125, "calm": 84, "trap": 140, "indie": 124, "chiptune": 144, "marimba": 120}
 # Each theme of the animation template has the track it is paired with; used when the plan
 # names a theme but no music.mood.
 THEME_MOOD = {"aurora": "marimba", "ember": "trap", "lagoon": "energetic", "daylight": "indie"}
@@ -662,6 +662,10 @@ def main():
     if mood not in MOODS:
         sys.exit(f"compose.py: unknown mood {mood!r}; use one of {', '.join(MOODS)}")
     out = args.out or music.get("file") or "output/media/music.mp3"
+    plan_dir = os.path.dirname(os.path.abspath(args.plan))
+    if not args.out and os.path.exists(out) and os.path.commonpath([os.path.abspath(out), plan_dir]) != plan_dir:
+        sys.exit(f"compose.py: {out} already exists outside {plan_dir}, so it is a track to keep, not a "
+                 "place to write. Skip composing, or pass --out.")
     seed = args.seed if args.seed is not None else int(music.get("seed", 7))
     bpm = float(plan.get("bpm", BPM[mood]))
     secs, total_beats = sections_from_plan(plan)

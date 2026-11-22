@@ -84,7 +84,7 @@ pass with `--user`. Use it on:
   time and the place, so the still behind it can be taken again)
 - every screenshot (a `.png` input is treated as a single frame; `--start`/`--end` are
   required by the parser but ignored):
-  `python3 <skill dir>/scripts/redact.py --input output/media/screenshots/01-main.png --start 0 --end 1 --user $(whoami) --out /tmp/pp-shot.json`
+  `python3 <skill dir>/scripts/redact.py --input output/media/screenshots/01-main.png --start 0 --end 1 --user $(whoami) --out output/media/scan-01-main.json`
 
 A screenshot that produces a box is retaken with the offending content off screen.
 
@@ -127,7 +127,8 @@ for each:
 3. Final `demo.mp4` OCR-scanned at 5 fps: 0 boxes (quote the line), or every remaining box
    named to the user as made-up sample data and accepted by them; and every contact sheet of
    the final file read by eye.
-4. Only the assembled `demo.mp4` will be uploaded; no still, frame or plan leaves
+4. Only the chosen medium is uploaded: the assembled `demo.mp4`, or the reviewed files in
+   `output/media/screenshots/`; no frame, plan, capture or working still leaves
    `output/media/`.
 5. No file from the never-open list was read.
 6. Nothing uncertain remains. If something does, it goes to the user before LinkedIn opens.

@@ -2,6 +2,7 @@
 <html data-theme="aurora">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="data:,">
 <title>Project Publisher animation</title>
 <!--
   The animated demo video, as one page. It reads ../plan.json (or ?plan=<url>), builds every
@@ -129,7 +130,7 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);color:
 .sLabel{left:140px;top:150px;font:800 28px var(--mono);letter-spacing:.2em;text-transform:uppercase}
 .stat{position:absolute;top:290px}
 .stat .n{font-family:var(--display);font-weight:800;font-size:170px;letter-spacing:-.045em;line-height:1;white-space:nowrap;
-  height:170px;display:flex;align-items:flex-end}   /* a figure set smaller still stands on the same line */
+  height:170px;display:inline-flex;align-items:flex-end}   /* figures set smaller still stand on the same line */
 .stat .n small{font-size:64px;letter-spacing:-.02em;margin-left:8px}
 .stat .l{margin-top:22px;font:600 34px/1.22 var(--sans);color:var(--ink3)}
 .stat.hl .n{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -141,6 +142,9 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);color:
 #eQ{left:140px;top:270px;width:1640px;font-family:var(--display);font-weight:800;font-size:112px;letter-spacing:-.035em;line-height:1.06}
 #eSub{left:146px;top:650px;width:1560px;font:600 46px/1.28 var(--sans);color:var(--ink3);white-space:pre-line}
 #eRow{left:146px;top:830px;width:1640px;display:flex;flex-wrap:wrap;gap:14px}
+
+#head,#eQ{text-wrap:balance}
+#sub,#h3,.tSub,.stat .l,.sNote,#eSub{text-wrap:pretty}
 
 #flash{position:absolute;inset:0;background:var(--flash);opacity:0;pointer-events:none}
 #prog{position:absolute;left:0;bottom:0;height:8px;width:0;background:linear-gradient(90deg,var(--a1),var(--a2))}
@@ -269,6 +273,17 @@ function sequence(b, shots, s, bw, bh) {
     shot.until = k + 1 < shots.length ? beat(shots[k + 1].at) : s.e;
     shot.moves = k > 0 && shots[k - 1].src === shot.src;
     shot.rings = (shot.rings || []).map(r => ({...r, el: b.appendChild(el('div', 'ring'))}));
+    if (shot.focus) {            // a focus is shown whole inside the box, so its shape and size matter
+      const called = `chapter "${s.spec.chapter}": focus [${shot.focus}]`, shape = bw / bh;
+      const k = Math.min(bw / shot.focus[2], bh / shot.focus[3]);
+      if (Math.abs(shot.focus[2] / shot.focus[3] / shape - 1) > .05) warnings.push(
+        `${called} is not the capture's shape, so what is beside it will show. Make it ${shape.toFixed(2)} times as wide as it is tall.`);
+      if (k > 1.15) warnings.push(
+        `${called} is drawn at ${k.toFixed(1)} times its real size and will look soft. Make it at least ${Math.ceil(bw / 1.15)} wide.`);
+      const [fx, fy, fw, fh] = shot.focus, iw = shot.img.naturalWidth, ih = shot.img.naturalHeight;
+      if (fx < 0 || fy < 0 || fx + fw > iw || fy + fh > ih) warnings.push(
+        `${called} runs past the capture's edge (it is ${iw} × ${ih}), so a strip of bare card would show. Keep it inside.`);
+    }
   });
   const place = (e, v) => {      // the part of the picture given by v fills the box
     const k = Math.min(bw / v[2], bh / v[3]);
@@ -357,13 +372,14 @@ function hookScene(s, spec) {
   tooBig('hook line', Math.max($('h1').scrollWidth, $('h2').scrollWidth), 1640);
   tooBig('hook sub', $('h3').offsetHeight, 200);
   return () => {     // the first line is there from frame one: a feed shows that frame as the thumbnail
-    rise($('h1'), s.s - .6, s.e, 44, .5); rise($('h2'), s.s + 2.7 * BEAT, s.e, 44, .5); rise($('h3'), s.s + 4.7 * BEAT, s.e, 30, .5);
+    rise($('h1'), s.s - .6, s.e, 44, .5); rise($('h2'), s.s + 2 * BEAT, s.e, 44, .5); rise($('h3'), s.s + 3.4 * BEAT, s.e, 30, .5);
   };
 }
-function tags(e, plan) {
+function tags(e, plan, name) {
   const day = (plan.brand || {}).day || (plan.end || {}).text;
   if (day) e.append(el('span', 'tag', day));
-  if ((plan.end || {}).sub) e.append(el('span', 'tagm', plan.end.sub));
+  const rest = [name, (plan.end || {}).sub].filter(Boolean).join('  ·  ');
+  if (rest) e.append(el('span', 'tagm', rest));
 }
 function titleScene(s, spec, plan) {
   tags($('tTag'), plan);
@@ -432,11 +448,13 @@ function statsScene(s, spec) {
     const m = String(value).match(/^([\d.,]+)\s*(.*)$/) || [0, String(value), ''];
     const n = e.appendChild(el('div', 'n')), num = n.appendChild(document.createTextNode(m[1]));
     if (m[2]) n.appendChild(el('small', '', m[2]));
-    fit(n, gap - 25, 80);          // a long figure ("33.80") is set smaller, not cut off
-    tooBig(`stats figure "${value}"`, n.scrollWidth, gap - 25);
     e.appendChild(el('div', 'l', text));
-    return {e, num, shown: m[1], counts: /^\d+$/.test(m[1]) && +m[1] > 1};    // whole numbers count up
+    return {e, n, num, shown: m[1], counts: /^\d+$/.test(m[1]) && +m[1] > 1};    // whole numbers count up
   });
+  // One size for every figure: the largest at which the longest ("33.80") leaves air beside it.
+  const px = Math.min(...stats.map(st => fit(st.n, gap - 70, 80)));
+  stats.forEach(st => { st.n.style.fontSize = px + 'px';
+    tooBig(`stats figure "${st.n.textContent}"`, st.n.scrollWidth, gap - 70); });
   const note = scene.appendChild(el('div', 'a sNote'));
   String(spec.note || '').split('**').forEach((part, k) => note.append(k % 2 ? el('b', '', part) : part));
   stats.forEach(st => tooBig(`stats label "${st.e.lastChild.textContent}"`, st.e.lastChild.offsetHeight, 130));
@@ -453,7 +471,7 @@ function statsScene(s, spec) {
   };
 }
 function endScene(s, spec, plan) {
-  tags($('eTags'), plan);
+  tags($('eTags'), plan, spec.question ? (plan.brand || {}).name : null);
   if (spec.question) accented($('eQ'), spec.question, spec.accent, false);
   else accented($('eQ'), (plan.brand || {}).name || (plan.title || {}).text || '', null, true);
   for (let px = 112; $('eQ').scrollHeight > 370 && px > 72; px -= 4) $('eQ').style.fontSize = px + 'px';
@@ -519,7 +537,19 @@ async function boot() {
     const drops = segs.filter(s => s.kind === 'title' || (s.chapter && s.chapter.drop));    // where the music drops
     $('flash').style.opacity = Math.max(0, ...drops.map(s => T >= s.s ? (s.kind === 'title' ? .34 : .2) * (1 - lin(s.s, s.s + .3)) : 0));
   };
-  return {frames: Math.round(TOTAL * FPS), seconds: TOTAL, warnings};
+  // The moments worth a still before rendering: the first frame, each still once it has settled,
+  // each ring while it is up, and each scene just before it ends.
+  const moments = [0];
+  segs.forEach(s => {
+    const within = t => moments.push(Math.max(s.s, Math.min(t, s.e - .3)));
+    if (s.chapter) s.chapter.shots.forEach(shot => {
+      within(shot.t + .9);
+      shot.rings.forEach(r => within(s.s + r.at * BEAT + .5));
+    });
+    within(s.e - .4);
+  });
+  const stills = [...new Set(moments.map(t => Math.round(t * 10) / 10))].sort((a, b) => a - b);
+  return {frames: Math.round(TOTAL * FPS), seconds: TOTAL, warnings, moments: stills};
 }
 
 window.renderAt = t => { T = t; draw(); };

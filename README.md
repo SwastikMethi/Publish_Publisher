@@ -1,7 +1,7 @@
 # Project Publisher
 
 A Claude Code Skill that turns a finished software project into a ready-to-review LinkedIn
-build-in-public post, with screenshots and a designed 35–40 second animated demo video already loaded
+build-in-public post, with screenshots and a designed animated demo video of about 40 seconds already loaded
 into the composer.
 
 Built as Day 1 of a 30-day challenge: one project a day, each posted to LinkedIn. This is the
@@ -12,7 +12,8 @@ follows using capabilities it already has: reading the repository, running Git a
 commands, driving a browser through Playwright MCP, and writing. The only code is one web page,
 the animation template that draws the video, and three small deterministic scripts that compose
 the music, join the frames into the video, and scan it for sensitive text by OCR. None of them
-touches the network or anything outside the project's `output/` folder.
+touches the network, and they write only under the project's `output/` folder (and a
+temporary folder while they work).
 
 ## Workflow
 
@@ -109,7 +110,7 @@ Notes:
 
 - If a project already has its own `playwright` MCP server configured at project scope, it
   shadows the user-scope one, and its browser profile will not hold your LinkedIn login.
-- `--output-dir` keeps Playwright's own page snapshots out of your project. Screenshots and video still go to `output/` because the skill passes explicit filenames.
+- `--output-dir` keeps Playwright's own page snapshots out of your project. Screenshots, stills and frames still go to `output/` because the skill passes explicit paths.
 - A persistent browser profile can be used by one browser at a time. If Playwright fails to
   launch, close other Playwright MCP browsers first.
 

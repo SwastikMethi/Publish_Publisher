@@ -1,6 +1,6 @@
 ---
 name: project-publisher
-description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots, builds a designed 35–40 second animated demo video around real stills of the product (in rotating colour themes, each with its own original track composed to the same beats), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
+description: Turn the current repository into a ready-to-review LinkedIn build-in-public post that introduces the project to people who have never seen it. Understands the repo, asks what got the user into it, runs the app, explores it with Playwright MCP, captures 2–4 screenshots, builds a designed animated demo video of about 40 seconds around real stills of the product (in rotating colour themes, each with its own original track composed to the same beats), writes a plain-English post about what the project is and the one design detail that makes it interesting, checks media for sensitive content, picks the stronger medium, and loads the LinkedIn composer, then stops for human review. Use whenever the user says /project-publisher, "publish this project to LinkedIn", "create today's LinkedIn post", "prepare Day N/30", "write a build in public post", "record a demo of this project", or "screenshot this app for LinkedIn", even if they only mention one of those steps.
 argument-hint: "[Day N/30] [publish]"
 ---
 
@@ -12,7 +12,8 @@ exploring the app, screenshots, drawing the video's frames, and LinkedIn. The vi
 animation built around real stills of the product: the template in `assets/animation/` draws
 it from a plan, and the three scripts in `scripts/` (`compose.py`, `assemble.py`, `redact.py`)
 make its music, join it up, and scan it. Use the template and the scripts as they are; the
-only browser code you write is the two short snippets the video guide gives. Do not click
+only browser code you write is the three short snippets the video guide gives, with the
+product's own steps filled in. Do not click
 LinkedIn's final Post button unless the user asked you to publish.
 
 Work through the stages in order. Each stage ends with a named artifact or decision. Tell the
@@ -42,7 +43,7 @@ user in one or two lines what you concluded at the end of each stage.
   unrelated."
   Record the answer. "Unrelated" or no answer means no cross-reference at all; do not add one
   on your own. The log also tells you which first-line shapes, hashtags, and video themes
-  earlier posts used, so you can avoid repeating them.
+  earlier posts used, so you can avoid repeating them (the series hashtag excepted).
 
 ## 2. Preflight
 
@@ -62,7 +63,9 @@ user in one or two lines what you concluded at the end of each stage.
   there, or make a silent video if not. Do not stop for it.
 - Confirm you are in a Git repository. If not, continue without Git and say the recency analysis
   will be weaker.
-- `mkdir -p output/media/screenshots`. Everything you produce goes under `output/`.
+- `mkdir -p output/media/screenshots output/media/flow/assets`. Everything you produce goes
+  under `output/`. `<skill dir>` in this file and the guides is the skill's own directory, the
+  one holding this `SKILL.md`.
 
 ## 3. Understand the repository
 
@@ -96,9 +99,9 @@ Question (user):    something the user actually wants answered, from stage 1; bl
 Worth showing:      which screens or interactions
 Demo workflow:      the one flow that shows the value, as 4–5 verbs (these become the
                     video's chapters: Search, Score, Tailor, Approve)
-Numbers:            three or four counts the run will produce (items found, files written,
-                    things refused), each with where it will be read from; filled in after
-                    stage 8 for the video's stats card
+Numbers:            up to four figures the run will produce (items found, files written,
+                    things refused), each with where it will be read from; filled in during
+                    stage 8, before the plan is written, for the video's stats card
 ```
 
 Every line must trace to a file, a commit, or the user's words. No invented metrics, users,
@@ -152,7 +155,7 @@ scripts (`npm run dev`, `pnpm dev`, `uvicorn ...`, `streamlit run ...`), config 
   - Never run its installer. It writes outside the repo.
   - Do not invoke the agent flow yourself. If its output is worth showing, hand the user the
     exact command to run in a second terminal with its output saved to a file
-    (`<command> 2>&1 | tee output/media/flow/assets/NN-run.txt`), and use lines of that file
+    (`{ echo '$ <command>'; <command>; } 2>&1 | tee output/media/flow/assets/NN-run.txt`), and use lines of that file
     as a `terminal` chapter. Otherwise the post shows the CLI layer and the design, which is
     usually the interesting part anyway.
   - If the target is this skill itself, this run is the demo: its stills are the output of
@@ -182,8 +185,8 @@ Budget: exploration should take a few minutes, not tens. Visit each screen once,
 feature the story is about, and stop. Do not investigate features that are not in the story.
 
 Output: a demo plan of 4–6 numbered steps, each a specific action on a specific element,
-following: strongest screen → core interaction → result → one differentiating feature →
-clean end state. For each step, name the states worth a still: usually the screen before the
+following: strongest screen → core interaction → result → one differentiating feature. For
+each step, name the states worth a still: usually the screen before the
 action and the screen after it. Show the plan to the user in a few lines.
 
 ## 7. Capture screenshots
@@ -193,7 +196,8 @@ from the demo plan, before touching the browser; do not discover them by taking 
 Then for each: set up the state, capture at 1440 × 900 into
 `output/media/screenshots/NN-slug.png`, and move on. Open all of them with the Read tool in one
 batch at the end and reject any that are blurry, duplicated, half-loaded, or show anything from
-the security list. Retake only the rejects.
+the security list. Retake only the rejects. A product with no screen gets its screenshots at
+stage 8, from the rendered stills; the screenshot guide says which.
 
 ## 8. Build the animated demo video
 
@@ -201,31 +205,33 @@ Read `references/video-guidelines.md`. The finished video is an animation built 
 stills of the product, never a recording: a hook, the title on the first beat drop, four or
 five chapters with the product on the right and a caption on the left, the run's real
 numbers, the closing question, a progress bar, an original track composed to the same beat
-grid, 33–42 seconds. The layout is always the same; the theme (colours, typeface, track)
+grid, 34–42 seconds. The layout is always the same; the theme (colours, typeface, track)
 rotates between posts. Four passes:
 
 1. **Capture the stills.** The product in each state the demo plan named, usually a before
-   and an after per chapter, into `output/media/flow/assets/`: Playwright screenshots at
-   1200 × 750 for a web app, the emulator's own screenshots for a phone app, the real output
-   of a real run saved as text for a tool with no screen. Stills are used whole; a still
+   and an after per chapter, into `output/media/flow/assets/`: the guide's capture snippet
+   at 1200 × 750 for a web app, the emulator's own screenshots for a phone app, the real
+   output of a real run saved as text for a tool with no screen. Stills are used whole; a still
    that shows anything from the never-show list is taken again.
 2. **Write the plan.** `output/media/plan.json` along the guide's spine: hook (the user's
    spark from stage 1 as one or two big lines), title (name plus the "you give it X" line),
    four or five chapters each with a name, a one-sentence caption in the post's voice, its
-   stills and the rings that point at things; a stats card of four real numbers with the
-   design detail highlighted; the end card with Day N/30 if given and the user's question if
+   stills and the rings that point at things; a stats card of up to four real numbers with
+   the design detail highlighted; the end card with Day N/30 if given and the user's question if
    given; the theme, chosen so it differs from the last two video posts (the guide's Theme
    section); every part's length in beats. Show the plan to the user in a few lines.
-3. **Build it and look at stills.** Copy `assets/animation/index.html` to
-   `output/media/flow/`, serve `output/media/` on 127.0.0.1, open the page with the guide's
-   snippet, and shorten whatever text it reports as not fitting. Read the stills it saves
-   against the guide's list before rendering anything.
-4. **Compose, render, assemble, scan.** `scripts/compose.py plan.json` writes the track.
-   The guide's second snippet draws the frames, a batch per call. `scripts/assemble.py
-   plan.json` joins frames and music into `output/media/demo.mp4`. Then OCR the finished file
-   with `scripts/redact.py` at 5 fps. The video is not done until that scan reports
-   `0 boxes`; a hit is fixed by retaking the still, never by blurring. Tile the final file
-   and Read every sheet against the guide's list.
+3. **Build it and look at stills.** Copy `<skill dir>/assets/animation/index.html` to
+   `output/media/flow/`, serve `output/media/` on 127.0.0.1, open the page in a tab of its
+   own with the guide's stills snippet, and change whatever it warns about. Tile the stills
+   it saves and Read every sheet against the guide's list before rendering anything.
+4. **Compose, render, assemble, scan.** `<skill dir>/scripts/compose.py` writes the track
+   from the plan. The guide's frames snippet draws the frames, a batch per call.
+   `<skill dir>/scripts/assemble.py` joins frames and music into `output/media/demo.mp4`.
+   Then OCR the finished file with `<skill dir>/scripts/redact.py` at 5 fps. The video is not
+   done until that scan reports `0 boxes` (or every remaining box is the product's own
+   made-up sample data, named to the user and accepted, as the guide allows); a hit is fixed
+   by retaking the still, never by blurring. Tile the final file and Read every sheet against
+   the guide's list.
 
 Fix the plan or a still, then render again; never edit the finished file or the copied page.
 
@@ -240,7 +246,8 @@ line passes. Save only the post text to `output/post.md` and print it.
 
 ## 10. Validate every claim
 
-Go through the post sentence by sentence. For each factual statement, name the evidence:
+Go through the post, and the video's captions and stats, sentence by sentence. For each
+factual statement, name the evidence:
 README, a file, a commit, config, or the user's words. Rewrite or remove anything without
 evidence. Prefer "the tool groups similar errors and suggests a root cause" over "this cuts
 debugging time by 80%". When unsure, write the conservative version.
@@ -248,7 +255,7 @@ debugging time by 80%". When unsure, write the conservative version.
 ## 11. Security review
 
 Read `references/security-guidelines.md`. Review the post and every screenshot by eye, and
-OCR-scan every screenshot with `scripts/redact.py` the same way as the video (a still is a
+OCR-scan every screenshot with `<skill dir>/scripts/redact.py` the same way as the video (a still is a
 one-frame video). The video's own clean scan from stage 8 counts as its review; quote the
 `0 boxes` line. Produce the six-line checklist from that file. If any line is not a clean yes,
 do not open LinkedIn; describe the concern and wait for the user. Nothing is blurred: a
@@ -293,7 +300,8 @@ Take one screenshot of the finished composer to `output/media/composer.png` for 
 
 ## 14. Stop for review
 
-Do not click Post. Stop any dev server you started in stage 5. Leave the browser open and print:
+Do not click Post. Stop any dev server you started in stage 5 (`lsof -ti tcp:<port> | xargs
+kill`). Leave the browser open and print:
 
 ```
 The LinkedIn post is prepared and ready for review.
@@ -348,7 +356,7 @@ earlier files. Tell the user the record was written and where.
 
 - `references/linkedin-style.md` — audience, spine, first line, voice, formatting, banned list, checklist. Read at stage 4 and 9.
 - `references/screenshot-guidelines.md` — count, viewport, pre-capture checklist, naming, review. Read at stage 7.
-- `references/video-guidelines.md` — the stills for each kind of product, the video's spine, beats, chapters and their three stages, stats card, themes, plan format, the two browser snippets, compose/render/assemble/scan, review. Read at stage 8.
+- `references/video-guidelines.md` — the stills for each kind of product, the video's spine, beats, chapters and their three stages, stats card, themes, plan format, the three browser snippets, compose/render/assemble/scan, review. Read at stage 8.
 - `references/security-guidelines.md` — what to look for, where, never-open list, OCR scan, final checklist. Read at stage 3 and 11.
 - `assets/animation/index.html` — the animation template: draws the whole video from `plan.json`. Copied to `output/media/flow/` at stage 8, never edited.
 - `scripts/compose.py` — compose an original music track to `plan.json`'s beats; the plan's theme picks the genre. Used at stage 8.

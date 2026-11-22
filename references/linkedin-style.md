@@ -122,10 +122,11 @@ so they share a voice but never describe each other.
   media is right there; the reader can see what it is.
 - The post does not depend on the media either. Someone reading with autoplay off, or in a
   notification preview, gets the whole story from the text.
-- The video's title card takes its sub-line from the post's "what it does" sentence, and its
+- The video's title card takes its sub-line from the story's "what it does" line, and its
   scene captions are written in the same voice as the post: one short plain sentence each,
   present tense, no identifiers. If a caption would not fit in the post, it does not fit on
-  the video. Write the post first; the captions come from it.
+  the video. Both come from stage 4's story lines: the captions at stage 8, the post at
+  stage 9.
 - Do not write the post around what was easiest to capture. If the interesting detail did not
   make it into the video, it still leads the post; the video shows the product, the post
   carries the idea.
@@ -162,7 +163,7 @@ so they share a voice but never describe each other.
 - Zero to three emojis. Use them at the emotional beats (the wow moment, the ask), never as
   bullets and never in the first line.
 - 3–6 hashtags on the last line, CamelCase or lowercase, matching the tools and the theme.
-  Always include the theme tag the user uses (for example #buildinpublic) and the main
+  Always include the series hashtag the user uses (for example #buildinpublic) and the main
   product names.
 - No "Stack:" line. Mention a tool inline where it matters to the story; leave the rest to
   hashtags.

@@ -77,7 +77,7 @@ def main():
                          "so a box covers the gap to its neighbours but does not linger after "
                          "the text has scrolled away")
     ap.add_argument("--pattern", action="append", default=[], help="extra regex (repeatable)")
-    ap.add_argument("--user", default="", help="username to redact wherever it appears")
+    ap.add_argument("--user", default="", help="username to report wherever it appears")
     ap.add_argument("--ocr-scale", type=float, default=0.5,
                     help="downscale frames before OCR for speed; 0.5 is fine for terminal text")
     args = ap.parse_args()
@@ -120,7 +120,7 @@ def main():
     # Merge hits that sit in the same place on consecutive samples into one interval.
     step = 1.0 / args.fps
     if args.time_pad < 0:
-        # Bias toward over-blurring. A box that lingers on harmless text for half a second is
+        # Bias toward reporting more. A box that lingers on harmless text for half a second is
         # invisible at fast-forward speed; a path that shows for one frame is a leak.
         args.time_pad = max(0.6, 2 * step + 0.05)
     merged = []
