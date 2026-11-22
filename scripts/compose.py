@@ -3,9 +3,9 @@
 
   compose.py plan.json [--mood NAME] [--seed N] [--out output/media/music.mp3]
 
-Reads bpm and the video's timeline (render.timeline: the scenes in the order and for the beats
-the theme's format stages them), and writes a track whose sections line up with the video: a filtered intro with a riser under the
-hook, a drop on the first frame of the title, a full groove under the chapters, a break with a
+Reads bpm and the plan's own timeline (hook, title, the scenes in order, end, each for the beats
+the plan gives it; the animation follows the same plan), and writes a track whose sections line
+up with the video: a filtered intro with a riser under the hook, a drop on the first frame of the title, a full groove under the chapters, a break with a
 riser under the stats card, a second drop on the chapter after it, and a tail that fades with
 the end card. Every note is synthesised here, so the result is original and safe to publish;
 nothing is sampled or downloaded. Runs in about a second.
@@ -33,8 +33,6 @@ import subprocess
 import sys
 import tempfile
 import wave
-
-import render      # the video's timeline, so the track's sections land on its cuts
 
 try:
     import numpy as np
@@ -92,7 +90,9 @@ class Track:
             buf[i:j] += sig[:j - i]
 
 
-# ---------- sections, from the same timeline render.py cuts the video to ----------
+# ---------- sections, from the same plan the animation reads its scenes from ----------
+# The animation template uses these same counts for an entry that gives no "beats".
+DEFAULT_BEATS = {"hook": 6, "title": 6, "chapter": 10, "stats": 8, "end": 8}
 ROLES = {
     "intro": dict(drums=False, full=False, pad=True, riser=True),
     "drop": dict(drums=True, full=True, lead=False, impact=True),
@@ -104,14 +104,41 @@ ROLES = {
 
 
 def sections_from_plan(plan):
-    """Give every stretch of beats a musical role, in the order the theme's format stages it."""
+    """Give every stretch of beats a musical role, in the order the plan lists it: the hook is
+    the intro, the title the drop, chapters the groove, a stats card the break, and the chapter
+    after a stats card the groove dropping back in."""
     secs, b = [], 0
-    for item in render.timeline(plan, render.theme_of(plan)[1]["format"]):
-        for j, (name, beats, role) in enumerate(item["music"]):
-            if beats > 0:          # cut: a new clip starts here, so a transition plays over it
-                secs.append({"name": name, "start": b, "end": b + beats, "cut": j == 0, **ROLES[role]})
-                b += beats
+
+    def add(name, kind, spec, role):
+        nonlocal b
+        beats = spec.get("beats", DEFAULT_BEATS[kind])
+        if beats > 0:              # cut: a new scene starts here, so a transition plays over it
+            secs.append({"name": name, "start": b, "end": b + beats, "cut": True, **ROLES[role]})
+            b += beats
+
+    if plan.get("hook"):
+        add("hook", "hook", plan["hook"], "intro")
+    if plan.get("title"):
+        add("title", "title", plan["title"], "drop")
+    after_break = False
+    for sc in plan.get("scenes", []):
+        kind = sc.get("type", "chapter")
+        if kind == "stats":
+            add("stats", "stats", sc, "break")
+            after_break = True
+        elif kind in ("chapter", "footage"):   # "footage": what a chapter was called in older plans
+            add(sc.get("chapter", "scene"), "chapter", sc, "return" if after_break else "groove")
+            after_break = False
+        else:
+            sys.exit(f"compose.py: unknown scene type {kind!r}")
+    if plan.get("end"):
+        add("end", "end", plan["end"], "outro")
     return secs, b
+
+
+def theme_name(plan):
+    theme = plan.get("theme")
+    return theme.get("name") if isinstance(theme, dict) else theme
 
 
 def section_at(secs, beat):
@@ -614,10 +641,9 @@ def marimba(tr, secs, total_beats, rng):
 MOODS = {"energetic": energetic, "calm": calm, "trap": trap, "indie": indie, "chiptune": chiptune,
          "marimba": marimba}
 BPM = {"energetic": 125, "calm": 84, "trap": 140, "indie": 124, "chiptune": 144, "marimba": 112}
-# Each video theme in render.py has the track it was designed with; used when the plan names a
-# theme but no music.mood.
-THEME_MOOD = {"midnight": "energetic", "volt": "trap", "paper": "indie", "console": "chiptune",
-              "keynote": "marimba"}
+# Each theme of the animation template has the track it is paired with; used when the plan
+# names a theme but no music.mood.
+THEME_MOOD = {"aurora": "marimba", "ember": "trap", "lagoon": "energetic", "daylight": "indie"}
 
 
 def main():
@@ -632,7 +658,7 @@ def main():
     with open(args.plan) as fh:
         plan = json.load(fh)
     music = plan.get("music") or {}
-    mood = args.mood or music.get("mood") or THEME_MOOD.get(render.theme_of(plan)[0], "energetic")
+    mood = args.mood or music.get("mood") or THEME_MOOD.get(theme_name(plan), "energetic")
     if mood not in MOODS:
         sys.exit(f"compose.py: unknown mood {mood!r}; use one of {', '.join(MOODS)}")
     out = args.out or music.get("file") or "output/media/music.mp3"
