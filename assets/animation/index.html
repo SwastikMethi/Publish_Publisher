@@ -1,0 +1,535 @@
+<!doctype html>
+<html data-theme="aurora">
+<head>
+<meta charset="utf-8">
+<title>Project Publisher animation</title>
+<!--
+  The animated demo video, as one page. It reads ../plan.json (or ?plan=<url>), builds every
+  scene from it, and draws the frame for any moment: window.renderAt(seconds) or
+  window.renderFrame(n). Nothing here runs on a clock, so frame n always looks the same.
+  Open with ?f=<frame> or ?t=<seconds> for a still, or with neither to watch it play.
+
+  Use: copy this file to output/media/flow/index.html and put the captures in
+  output/media/flow/assets/. The plan's shape is in references/video-guidelines.md. Change the
+  plan, not this page.
+-->
+<style>
+:root{
+  --sans:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
+  --display:var(--sans); --track:-.04em;
+  --mono:"SF Mono",Menlo,Monaco,monospace;
+}
+/* A theme is colours, a display typeface and (in compose.py) a track. The layout never changes. */
+html[data-theme="aurora"]{
+  --bg:#08090e; --ink:#f3f4f8; --ink2:#d5d8e8; --ink3:#c9cde0; --mut:#9aa0b4; --dim:#5b6076;
+  --a1:#b79cff; --a2:#6fb1ff; --glow1:rgba(167,139,250,.20); --glow2:rgba(96,165,250,.17);
+  --dot:rgba(255,255,255,.07); --chip:rgba(255,255,255,.06); --chip-line:rgba(255,255,255,.14); --chip-ink:#e7e9f5;
+  --tag-line:rgba(167,139,250,.65); --tag-ink:#d9ccff; --card-line:rgba(255,255,255,.16);
+  --card-shadow:0 40px 110px rgba(0,0,0,.6),0 0 0 9px rgba(255,255,255,.03);
+  --ring-glow:rgba(124,140,255,.6); --ring-halo:rgba(167,139,250,.2);
+  --pip:rgba(255,255,255,.13); --pip-done:rgba(255,255,255,.55); --flash:#fff;
+}
+html[data-theme="ember"]{
+  --display:"Avenir Next","Avenir",var(--sans); --track:-.03em;
+  --bg:#0e0907; --ink:#fbf3ee; --ink2:#ecd9cf; --ink3:#dcc7bc; --mut:#b39a8e; --dim:#6e5a51;
+  --a1:#ffb347; --a2:#ff5e7e; --glow1:rgba(255,140,60,.20); --glow2:rgba(255,80,120,.15);
+  --dot:rgba(255,235,220,.07); --chip:rgba(255,235,220,.06); --chip-line:rgba(255,235,220,.15); --chip-ink:#f6e6dc;
+  --tag-line:rgba(255,170,90,.65); --tag-ink:#ffd9b0; --card-line:rgba(255,235,220,.17);
+  --card-shadow:0 40px 110px rgba(0,0,0,.6),0 0 0 9px rgba(255,235,220,.03);
+  --ring-glow:rgba(255,120,80,.6); --ring-halo:rgba(255,170,90,.2);
+  --pip:rgba(255,235,220,.14); --pip-done:rgba(255,235,220,.55); --flash:#fff;
+}
+html[data-theme="lagoon"]{
+  --display:Futura,"Avenir Next",var(--sans); --track:-.02em;
+  --bg:#05100f; --ink:#eefaf6; --ink2:#cfe6df; --ink3:#bcd6ce; --mut:#8fb0a7; --dim:#4f6f67;
+  --a1:#5ef2c5; --a2:#4db8ff; --glow1:rgba(60,220,180,.17); --glow2:rgba(60,150,255,.16);
+  --dot:rgba(220,255,245,.07); --chip:rgba(220,255,245,.06); --chip-line:rgba(220,255,245,.15); --chip-ink:#def3ec;
+  --tag-line:rgba(94,242,197,.6); --tag-ink:#c4f7e6; --card-line:rgba(220,255,245,.17);
+  --card-shadow:0 40px 110px rgba(0,0,0,.6),0 0 0 9px rgba(220,255,245,.03);
+  --ring-glow:rgba(60,200,220,.6); --ring-halo:rgba(94,242,197,.2);
+  --pip:rgba(220,255,245,.14); --pip-done:rgba(220,255,245,.55); --flash:#fff;
+}
+html[data-theme="daylight"]{
+  --display:Charter,Georgia,serif; --track:-.02em;
+  --bg:#f1f3f8; --ink:#12141c; --ink2:#2a2f3d; --ink3:#3a4050; --mut:#5d6578; --dim:#8b93a6;
+  --a1:#2b50ff; --a2:#8a3ffc; --glow1:rgba(43,80,255,.13); --glow2:rgba(138,63,252,.11);
+  --dot:rgba(10,20,60,.08); --chip:rgba(10,20,60,.05); --chip-line:rgba(10,20,60,.17); --chip-ink:#1c2130;
+  --tag-line:rgba(43,80,255,.55); --tag-ink:#2b3fd0; --card-line:rgba(10,20,60,.16);
+  --card-shadow:0 40px 90px rgba(20,30,80,.24),0 0 0 9px rgba(10,20,60,.03);
+  --ring-glow:rgba(80,90,255,.45); --ring-halo:rgba(43,80,255,.16);
+  --pip:rgba(10,20,60,.15); --pip-done:rgba(10,20,60,.5); --flash:#c9d2ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);-webkit-font-smoothing:antialiased}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;background:
+  radial-gradient(1000px 760px at 8% 0%, var(--glow1), transparent 68%),
+  radial-gradient(900px 700px at 100% 100%, var(--glow2), transparent 70%),
+  var(--bg)}
+#dots{position:absolute;inset:0;opacity:.5;background-image:radial-gradient(var(--dot) 1.4px, transparent 1.6px);background-size:44px 44px}
+.scene{position:absolute;inset:0;opacity:0}
+.a{position:absolute;will-change:transform,opacity}
+.g{background:linear-gradient(90deg,var(--a1) 0%,var(--a2) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{display:inline-block;font:700 26px var(--mono);letter-spacing:.14em;padding:10px 20px;border-radius:999px;
+  border:2px solid var(--tag-line);color:var(--tag-ink);margin-right:18px;text-transform:uppercase}
+.tagm{font:600 26px var(--mono);letter-spacing:.08em;color:var(--mut)}
+.big{font-family:var(--display);font-weight:800;letter-spacing:var(--track);line-height:1;white-space:nowrap}
+
+/* hook */
+#h1,#h2{left:140px;font-size:118px} #h1{top:250px} #h2{top:400px}
+#h3{left:146px;top:640px;width:1500px;font:600 50px/1.25 var(--sans);color:var(--ink3);letter-spacing:-.01em;white-space:pre-line}
+
+/* title */
+#tTag{left:146px;top:210px}
+#tName{left:136px;top:290px;font-size:214px;transform-origin:left center}
+#tBar{left:146px;top:548px;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--a1),var(--a2))}
+#tSubs{left:146px;top:596px;width:1640px}
+.tSub{font:600 54px/1.3 var(--sans);color:var(--ink2);letter-spacing:-.012em}
+#tChips{left:146px;top:800px;width:1640px;display:flex;flex-wrap:wrap;gap:14px}
+.mchip{font:700 27px var(--sans);padding:12px 22px;border-radius:14px;background:var(--chip);
+  border:1.5px solid var(--chip-line);color:var(--chip-ink)}
+
+/* chapters: text on the left, the product on the right */
+#brand{left:120px;top:58px;font:700 22px var(--mono);letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+#grp{left:120px;top:128px;font:800 26px var(--mono);letter-spacing:.2em;text-transform:uppercase}
+#num{left:120px;top:186px;font:700 40px var(--mono);color:var(--mut);letter-spacing:.04em}
+#num b{color:var(--ink)}
+#name{left:112px;top:232px;font-size:150px}
+#copy{left:120px;top:432px;width:790px;display:flex;flex-direction:column;gap:22px}
+#head{font:700 58px/1.1 var(--sans);letter-spacing:-.022em}
+#sub{font:500 36px/1.28 var(--sans);color:var(--mut);letter-spacing:-.005em}
+#chips{left:120px;top:826px;width:820px;display:flex;flex-wrap:wrap;gap:12px}
+.chip{font:700 25px var(--sans);padding:11px 19px;border-radius:14px;background:var(--chip);
+  border:1.5px solid var(--chip-line);color:var(--chip-ink);white-space:nowrap}
+.chip.on{border-color:var(--tag-line);color:var(--tag-ink)}
+.chip.on:before{content:"";display:inline-block;width:11px;height:11px;border-radius:6px;
+  background:linear-gradient(90deg,var(--a1),var(--a2));margin-right:11px;vertical-align:1px}
+#track{left:120px;top:968px;display:flex;align-items:center;height:16px}
+.pip{width:64px;height:9px;border-radius:5px;margin-right:10px;background:var(--pip)}
+.pip.done{background:var(--pip-done)}
+.pip.now{background:linear-gradient(90deg,var(--a1),var(--a2));box-shadow:0 0 16px var(--ring-glow)}
+
+/* the product: phones (portrait stills), a window (landscape stills) or a terminal (real text) */
+.box{position:absolute;overflow:hidden;opacity:0;border:2px solid var(--card-line);box-shadow:var(--card-shadow)}
+.box.phone{border-radius:44px;background:#eef1f6}
+.box.window{border-radius:20px;background:#eef1f6}
+.box.terminal{border-radius:20px;background:#0b0d12;border-color:rgba(255,255,255,.14)}
+.box img{position:absolute;left:0;top:0;transform-origin:0 0;opacity:0}
+.ring{position:absolute;border-radius:14px;border:4px solid var(--a1);
+  box-shadow:0 0 0 6px var(--ring-halo),0 0 34px var(--ring-glow);opacity:0;pointer-events:none}
+.tbar{position:absolute;left:0;top:0;right:0;height:46px;background:rgba(255,255,255,.05)}
+.tbar i{position:absolute;top:16px;width:14px;height:14px;border-radius:7px;background:rgba(255,255,255,.2)}
+.tbody{position:absolute;left:28px;right:28px;top:66px;bottom:24px;overflow:hidden}
+.tlines{position:absolute;left:0;right:0;top:0;font-family:var(--mono);line-height:1.5;color:#d7dbe6}
+.tline{white-space:pre-wrap;word-break:break-all;opacity:0;padding:0 10px;border-left:4px solid transparent}
+.tline.cmd{color:#fff;font-weight:600}
+.tline.mark{color:#fff;background:rgba(255,255,255,.08);border-left-color:var(--a1)}
+
+/* stats */
+.sLabel{left:140px;top:150px;font:800 28px var(--mono);letter-spacing:.2em;text-transform:uppercase}
+.stat{position:absolute;top:290px;width:400px}
+.stat .n{font-family:var(--display);font-weight:800;font-size:170px;letter-spacing:-.045em;line-height:1;white-space:nowrap}
+.stat .n small{font-size:64px;letter-spacing:-.02em;margin-left:8px}
+.stat .l{margin-top:22px;font:600 34px/1.22 var(--sans);color:var(--ink3)}
+.stat.hl .n{background:linear-gradient(90deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sNote{left:140px;top:760px;width:1640px;font:600 46px/1.25 var(--sans);color:var(--ink2);letter-spacing:-.01em}
+.sNote b{color:var(--ink)}
+
+/* end */
+#eTags{left:146px;top:170px}
+#eQ{left:140px;top:270px;width:1640px;font-family:var(--display);font-weight:800;font-size:112px;letter-spacing:-.035em;line-height:1.06}
+#eSub{left:146px;top:650px;width:1560px;font:600 46px/1.28 var(--sans);color:var(--ink3);white-space:pre-line}
+#eRow{left:146px;top:830px;width:1640px;display:flex;flex-wrap:wrap;gap:14px}
+
+#flash{position:absolute;inset:0;background:var(--flash);opacity:0;pointer-events:none}
+#prog{position:absolute;left:0;bottom:0;height:8px;width:0;background:linear-gradient(90deg,var(--a1),var(--a2))}
+#err{position:absolute;left:80px;top:80px;right:80px;font:600 40px/1.3 var(--mono);color:#ff6b6b;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="dots"></div>
+
+  <div class="scene" id="hook">
+    <div class="a big" id="h1"></div>
+    <div class="a big g" id="h2"></div>
+    <div class="a" id="h3"></div>
+  </div>
+
+  <div class="scene" id="title">
+    <div class="a" id="tTag"></div>
+    <div class="a big" id="tName"></div>
+    <div class="a" id="tBar"></div>
+    <div class="a" id="tSubs"></div>
+    <div class="a" id="tChips"></div>
+  </div>
+
+  <div class="scene" id="main">
+    <div class="a" id="brand"></div>
+    <div class="a g" id="grp"></div>
+    <div class="a" id="num"></div>
+    <div class="a big" id="name"></div>
+    <div class="a" id="copy"><div id="head"></div><div id="sub"></div></div>
+    <div class="a" id="chips"></div>
+    <div class="a" id="track"></div>
+  </div>
+
+  <div class="scene" id="end">
+    <div class="a" id="eTags"></div>
+    <div class="a" id="eQ"></div>
+    <div class="a" id="eSub"></div>
+    <div class="a" id="eRow"></div>
+  </div>
+
+  <div id="flash"></div>
+  <div id="prog"></div>
+  <div id="err"></div>
+</div>
+
+<script>
+const W = 1920, AREA = {x: 960, y: 64, w: 930, h: 953};   // the right side, where the product sits
+const DEFAULT_BEATS = {hook: 6, title: 6, chapter: 10, stats: 8, end: 8};   // compose.py uses the same
+let T = 0, FPS = 30, BEAT = .5, TOTAL = 0, segs = [], chapters = [], draw = () => {};
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls;
+  if (text != null) e.textContent = text; return e; };
+const cl = x => Math.max(0, Math.min(1, x));
+const lin = (a, b) => cl((T - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - x, 3);
+const back = x => { const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const mix = (a, b, p) => a + (b - a) * p;
+function rise(e, a, b = 1e9, dy = 34, d = .45) {
+  const i = eo(lin(a, a + d));
+  e.style.opacity = Math.min(i, 1 - lin(b - .22, b));
+  e.style.transform = `translateY(${(1 - i) * dy}px)`;
+}
+function pop(e, a, b = 1e9, d = .42) {
+  const i = lin(a, a + d);
+  e.style.opacity = Math.min(cl(i * 3), 1 - lin(b - .22, b));
+  e.style.transform = `scale(${i <= 0 ? .6 : .6 + .4 * back(i)})`;
+}
+const win = (s, first, last) => Math.min(first ? 1 : lin(s.s, s.s + .2), last ? 1 : 1 - lin(s.e - .14, s.e));
+
+// Text with one part in the accent gradient. With no part named, the last word of a
+// several-word name is used; a question is left plain.
+function accented(e, text, part, lastWord) {
+  e.textContent = '';
+  if (!part && lastWord && text.includes(' ')) part = text.slice(text.lastIndexOf(' ') + 1);
+  const at = part ? text.indexOf(part) : -1;
+  if (at < 0) { e.textContent = text; return; }
+  e.append(text.slice(0, at), el('span', 'g', part), text.slice(at + part.length));
+}
+// Shrinks one line of big type until it fits. Done once, before any frame is drawn.
+function fit(e, max, floor = 56) {
+  let px = parseFloat(getComputedStyle(e).fontSize);
+  while (e.scrollWidth > max && px > floor) { px -= 4; e.style.fontSize = px + 'px'; }
+  return px;
+}
+// Pictures are fetched fresh, so a capture that was retaken is never an old copy from the cache.
+const image = src => new Promise((ok, bad) => { const i = new Image();
+  i.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+  i.decode().then(() => ok(i), () => bad(new Error('cannot load ' + src))); });
+// Text that does not fit its place is reported by window.ready, to be shortened in the plan.
+const warnings = [];
+const tooBig = (what, px, max) => { if (px > max + 1) warnings.push(
+  `${what}: needs ${Math.round(px)} px, has ${max}. Shorten it in the plan.`); };
+
+// ---------- the product on the right ----------
+// Each builder is given the chapter c and its stretch of time s, and returns the function
+// that draws that chapter's boxes for the current moment.
+function box(c, kind, w, h, left, top) {
+  const b = el('div', 'box ' + kind);
+  Object.assign(b.style, {width: w + 'px', height: h + 'px', left: left + 'px', top: top + 'px'});
+  $('main').append(b);
+  c.boxes.push(b);
+  return b;
+}
+// The chapter's first box is there from the start. It rises in when the chapter follows a
+// card (hook, title, stats), and otherwise just takes the last chapter's place.
+function arrive(b, c, s) {
+  const i = eo(lin(s.s, s.s + .5));
+  b.style.opacity = Math.min(c.first ? i : lin(s.s, s.s + .2), 1 - lin(s.e - .2, s.e));
+  b.style.transform = c.first ? `translateY(${(1 - i) * 70}px)` : 'none';
+}
+function slideIn(b, s, at) {      // a second box comes in from the right when its first still is due
+  const i = eo(lin(at, at + .5));
+  b.style.opacity = Math.min(cl(i * 2), 1 - lin(s.e - .2, s.e));
+  b.style.transform = `translateX(${(1 - i) * 90}px) scale(${.94 + .06 * i})`;
+}
+// One still after another in one box. Two stills in a row from the same file are one picture
+// with the view moving (a push-in); otherwise they cross-fade.
+function sequence(b, shots, s, bw, bh) {
+  const beat = n => s.s + n * BEAT;
+  shots.forEach((shot, k) => {
+    shot.el = b.appendChild(shot.img);
+    shot.view = shot.focus || [0, 0, shot.img.naturalWidth, shot.img.naturalHeight];
+    shot.t = beat(shot.at || 0);
+    shot.until = k + 1 < shots.length ? beat(shots[k + 1].at) : s.e;
+    shot.moves = k > 0 && shots[k - 1].src === shot.src;
+    shot.rings = (shot.rings || []).map(r => ({...r, el: b.appendChild(el('div', 'ring'))}));
+  });
+  const place = (e, v) => {      // the part of the picture given by v fills the box
+    const k = Math.min(bw / v[2], bh / v[3]);
+    const x = (bw - v[2] * k) / 2 - v[0] * k, y = (bh - v[3] * k) / 2 - v[1] * k;
+    e.style.transform = `translate(${x}px,${y}px) scale(${k})`;
+    return {k, x, y};
+  };
+  return () => {
+    let cur = 0;
+    shots.forEach((shot, k) => { shot.el.style.opacity = 0; if (T >= shot.t) cur = k; });
+    const shot = shots[cur], prev = shots[cur - 1];
+    let v = shot.view;
+    if (shot.moves) { const p = eo(lin(shot.t, shot.t + .8)); v = v.map((n, i) => mix(prev.view[i], n, p)); }
+    else if (prev) { prev.el.style.opacity = 1; place(prev.el, prev.view); }
+    shot.el.style.opacity = prev && !shot.moves ? lin(shot.t, shot.t + .25) : 1;
+    const m = place(shot.el, v);
+    shots.forEach(sh => sh.rings.forEach(r => {
+      const a = beat(r.at), z = r.until != null ? beat(r.until) : sh.until - .15;
+      const o = sh === shot ? Math.min(lin(a, a + .25), 1 - lin(z - .2, z)) : 0;
+      Object.assign(r.el.style, {opacity: o * (.78 + .22 * Math.sin((T - a) * 5.5)),
+        left: (m.x + r.box[0] * m.k) + 'px', top: (m.y + r.box[1] * m.k) + 'px',
+        width: (r.box[2] * m.k) + 'px', height: (r.box[3] * m.k) + 'px',
+        transform: `scale(${1 + .1 * (1 - eo(lin(a, a + .4)))})`});
+    }));
+  };
+}
+function sized(img, maxW, maxH) {     // the picture's own shape, as large as fits
+  const k = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+  return [img.naturalWidth * k, img.naturalHeight * k];
+}
+function phones(c, s) {
+  const slots = ['a', 'b'].map(n => c.shots.filter(x => (x.slot || 'a') === n)).filter(x => x.length);
+  const parts = slots.map((shots, n) => {
+    const [w, h] = sized(shots[0].img, 440, AREA.h);
+    const left = slots.length === 1 ? AREA.x + (AREA.w - w) / 2 : AREA.x + 30 + n * 460 + (440 - w) / 2;
+    const b = box(c, 'phone', w, h, left, AREA.y + (AREA.h - h) / 2);
+    return {b, n, at: s.s + (shots[0].at || 0) * BEAT, frames: sequence(b, shots, s, w, h)};
+  });
+  return () => parts.forEach(p => {
+    if (p.n === 0) arrive(p.b, c, s); else slideIn(p.b, s, p.at);
+    p.frames();
+  });
+}
+function windowed(c, s) {
+  const [w, h] = sized(c.shots[0].img, 900, 860);
+  const b = box(c, 'window', w, h, AREA.x + (AREA.w - w) / 2, AREA.y + (AREA.h - h) / 2);
+  const frames = sequence(b, c.shots, s, w, h);
+  return () => { arrive(b, c, s); frames(); };
+}
+function terminal(c, s) {
+  const w = 900, h = 760, b = box(c, 'terminal', w, h, AREA.x + (AREA.w - w) / 2, AREA.y + (AREA.h - h) / 2);
+  const bar = b.appendChild(el('div', 'tbar'));
+  [20, 44, 68].forEach(x => { bar.appendChild(el('i')).style.left = x + 'px'; });
+  const body = b.appendChild(el('div', 'tbody')), list = body.appendChild(el('div', 'tlines'));
+  const longest = Math.max(1, ...c.lines.map(l => l.length));
+  // As large as lets the longest line fit; below 18 px a long line wraps instead.
+  list.style.fontSize = Math.max(18, Math.min(30, Math.floor((w - 84) / (longest * .61)))) + 'px';
+  const mark = new Set(c.mark || []);
+  const from = s.s + BEAT, span = Math.max(BEAT, s.e - s.s - 4 * BEAT), step = Math.min(BEAT, span / c.lines.length);
+  const rows = c.lines.map((text, i) => {
+    const e = list.appendChild(el('div', 'tline' + (text.startsWith('$ ') ? ' cmd' : '') + (mark.has(i) ? ' mark' : ''), text || ' '));
+    return {e, text, t: from + i * step, cmd: text.startsWith('$ ')};
+  });
+  rows.forEach(r => { r.bottom = r.e.offsetTop + r.e.offsetHeight; });
+  const room = body.clientHeight, need = r => Math.max(0, r.bottom - room);
+  return () => {
+    arrive(b, c, s);
+    let last = null, before = null;
+    rows.forEach(r => {
+      r.e.style.opacity = lin(r.t, r.t + .18);
+      if (r.cmd) r.e.textContent = r.text.slice(0, 2 + Math.round((r.text.length - 2) * lin(r.t, r.t + Math.min(.7, step * 3))));
+      if (T >= r.t) { before = last; last = r; }
+    });
+    const y = last ? mix(before ? need(before) : 0, need(last), eo(lin(last.t, last.t + .25))) : 0;
+    list.style.transform = `translateY(${-y}px)`;    // the newest line stays in view, as in a real terminal
+  };
+}
+
+// ---------- scenes ----------
+function hookScene(s, spec) {
+  const lines = spec.lines || [spec.text || ''];
+  $('h1').textContent = lines[0]; $('h2').textContent = lines[1] || ''; $('h3').textContent = spec.sub || '';
+  const px = Math.min(fit($('h1'), 1640), fit($('h2'), 1640));
+  $('h1').style.fontSize = $('h2').style.fontSize = px + 'px';
+  tooBig('hook line', Math.max($('h1').scrollWidth, $('h2').scrollWidth), 1640);
+  tooBig('hook sub', $('h3').offsetHeight, 200);
+  return () => {     // the first line is there from frame one: a feed shows that frame as the thumbnail
+    rise($('h1'), s.s - .6, s.e, 44, .5); rise($('h2'), s.s + 2.7 * BEAT, s.e, 44, .5); rise($('h3'), s.s + 4.7 * BEAT, s.e, 30, .5);
+  };
+}
+function tags(e, plan) {
+  const day = (plan.brand || {}).day || (plan.end || {}).text;
+  if (day) e.append(el('span', 'tag', day));
+  if ((plan.end || {}).sub) e.append(el('span', 'tagm', plan.end.sub));
+}
+function titleScene(s, spec, plan) {
+  tags($('tTag'), plan);
+  accented($('tName'), spec.text, spec.accent, true);
+  fit($('tName'), 1640, 90);
+  const subs = [].concat(spec.sub || []).map(t => $('tSubs').appendChild(el('div', 'tSub', t)));
+  const chips = chapters.map(c => $('tChips').appendChild(el('span', 'mchip', c.spec.chapter)));
+  tooBig('title', $('tName').scrollWidth, 1640);
+  tooBig('title sub', $('tSubs').offsetHeight, 190);
+  tooBig('chapter names under the title', $('tChips').offsetHeight, 130);
+  return () => {
+    pop($('tTag'), s.s + .05, s.e, .4);
+    const i = eo(lin(s.s, s.s + .5));
+    $('tName').style.opacity = Math.min(i, 1 - lin(s.e - .2, s.e));
+    $('tName').style.transform = `translateY(${(1 - i) * 46}px) scale(${.94 + .06 * i})`;
+    $('tBar').style.width = (eo(lin(s.s + .5 * BEAT, s.s + 2 * BEAT)) * Math.min(1640, $('tName').scrollWidth - 20)) + 'px';
+    $('tBar').style.opacity = 1 - lin(s.e - .2, s.e);
+    subs.forEach((e, k) => rise(e, s.s + (1.2 + .8 * k) * BEAT, s.e));
+    chips.forEach((e, k) => pop(e, s.s + 3 * BEAT + k * .12, s.e, .34));
+  };
+}
+function chapterScene(s, spec, plan) {
+  const c = s.chapter, brand = plan.brand || {}, called = `chapter "${spec.chapter}"`;
+  const fill = () => {
+    $('brand').textContent = [brand.name, brand.day].filter(Boolean).join('  ·  ');
+    $('grp').textContent = spec.group || '';
+    $('num').innerHTML = `<b>${String(c.i + 1).padStart(2, '0')}</b> / ${String(chapters.length).padStart(2, '0')}`;
+    $('name').textContent = spec.chapter;
+    $('head').textContent = spec.head || ''; $('sub').textContent = spec.sub || '';
+    $('chips').textContent = '';
+    (spec.chips || []).forEach(t => $('chips').append(el('span', 'chip', t)));
+    if (plan.badge) $('chips').append(el('span', 'chip on', plan.badge));
+  };
+  fill(); $('name').style.fontSize = '';
+  c.namePx = fit($('name'), 800);
+  tooBig(called + ' name', $('name').scrollWidth, 800);
+  tooBig(called + ' head and sub', $('copy').offsetHeight, 380);
+  tooBig(called + ' chips', $('chips').offsetHeight, 122);
+  c.stage = (spec.stage === 'terminal' ? terminal : spec.stage === 'window' ? windowed : phones)(c, s);
+  return () => {
+    const u = T - s.s;
+    fill(); $('name').style.fontSize = c.namePx + 'px';
+    rise($('grp'), s.s + .02, s.e, 18, .3); rise($('num'), s.s + .06, s.e, 18, .3);
+    const ni = eo(lin(s.s + .08, s.s + .5));
+    $('name').style.opacity = Math.min(ni, 1 - lin(s.e - .2, s.e));
+    $('name').style.transform = `translateX(${(1 - ni) * -46}px)`;
+    rise($('copy'), s.s + .32, s.e, 30, .45);
+    $('sub').style.opacity = eo(lin(s.s + 1.8 * BEAT, s.s + 1.8 * BEAT + .45));
+    rise($('chips'), s.s + 2.4 * BEAT, s.e, 22, .4);
+    chapters.forEach((x, k) => {
+      const p = $('track').children[k];
+      p.className = 'pip' + (k < c.i ? ' done' : k === c.i ? ' now' : '');
+      p.style.transform = k === c.i ? `scaleY(${1.5 + .5 * Math.sin(u * 6)})` : 'none';
+    });
+    c.stage();
+  };
+}
+function statsScene(s, spec) {
+  const scene = el('div', 'scene');
+  $('stage').insertBefore(scene, $('flash'));
+  const label = scene.appendChild(el('div', 'a g sLabel', spec.label || ''));
+  const items = (spec.items || []).slice(0, 4), gap = items.length > 3 ? 425 : items.length === 3 ? 560 : 800;
+  const stats = items.map(([value, text], k) => {
+    const e = scene.appendChild(el('div', 'stat' + (k === spec.highlight ? ' hl' : '')));
+    e.style.left = (140 + k * gap) + 'px';
+    const m = String(value).match(/^([\d.,]+)\s*(.*)$/) || [0, String(value), ''];
+    const n = e.appendChild(el('div', 'n')), num = n.appendChild(document.createTextNode(m[1]));
+    if (m[2]) n.appendChild(el('small', '', m[2]));
+    e.appendChild(el('div', 'l', text));
+    return {e, num, shown: m[1], counts: /^\d+$/.test(m[1]) && +m[1] > 1};    // whole numbers count up
+  });
+  const note = scene.appendChild(el('div', 'a sNote'));
+  String(spec.note || '').split('**').forEach((part, k) => note.append(k % 2 ? el('b', '', part) : part));
+  stats.forEach(st => tooBig(`stats label "${st.e.lastChild.textContent}"`, st.e.lastChild.offsetHeight, 130));
+  tooBig('stats note', note.offsetHeight, 180);
+  return () => {
+    scene.style.opacity = win(s, s === segs[0], s === segs[segs.length - 1]);
+    rise(label, s.s + .05, s.e);
+    stats.forEach((st, k) => {
+      const a = s.s + .2 + k * .28;
+      pop(st.e, a, s.e, .45);
+      st.num.nodeValue = st.counts ? String(Math.round(+st.shown * eo(lin(a, a + .7)))) : st.shown;
+    });
+    rise(note, s.s + 3.4 * BEAT, s.e);
+  };
+}
+function endScene(s, spec, plan) {
+  tags($('eTags'), plan);
+  if (spec.question) accented($('eQ'), spec.question, spec.accent, false);
+  else accented($('eQ'), (plan.brand || {}).name || (plan.title || {}).text || '', null, true);
+  for (let px = 112; $('eQ').scrollHeight > 370 && px > 72; px -= 4) $('eQ').style.fontSize = px + 'px';
+  $('eSub').textContent = spec.note || '';
+  const chips = (spec.chips || []).map(t => $('eRow').appendChild(el('span', 'mchip', t)));
+  tooBig('end question', $('eQ').scrollHeight, 370);
+  tooBig('end note', $('eSub').offsetHeight, 170);
+  tooBig('end chips', $('eRow').offsetHeight, 190);
+  return () => {
+    pop($('eTags'), s.s + .1, 1e9, .4);
+    rise($('eQ'), s.s + .3, 1e9, 44, .55);
+    rise($('eSub'), s.s + 2.8 * BEAT, 1e9, 30, .5);
+    chips.forEach((e, k) => pop(e, s.s + 4.2 * BEAT + k * .08, 1e9, .32));
+  };
+}
+
+// ---------- start: read the plan, load every picture, lay everything out once ----------
+async function boot() {
+  const q = new URLSearchParams(location.search);
+  const plan = await (await fetch(q.get('plan') || '../plan.json', {cache: 'no-store'})).json();
+  const theme = typeof plan.theme === 'object' ? plan.theme.name : plan.theme;
+  document.documentElement.dataset.theme = ['aurora', 'ember', 'lagoon', 'daylight'].includes(theme) ? theme : 'aurora';
+  FPS = plan.fps || 30; BEAT = 60 / (plan.bpm || 120);
+
+  let b = 0;
+  const add = (kind, spec) => { const n = spec.beats ?? DEFAULT_BEATS[kind];
+    if (n > 0) { segs.push({kind, spec, s: b * BEAT, e: (b + n) * BEAT}); b += n; } };
+  if (plan.hook) add('hook', plan.hook);
+  if (plan.title) add('title', plan.title);
+  (plan.scenes || []).forEach(sc => add(sc.type === 'stats' ? 'stats' : 'chapter', sc));
+  if (plan.end) add('end', plan.end);
+  TOTAL = b * BEAT;
+  segs.forEach((s, k) => {
+    if (s.kind !== 'chapter') return;
+    const before = segs[k - 1];
+    s.chapter = {i: chapters.length, spec: s.spec, first: !before || before.kind !== 'chapter',
+                 drop: !!before && before.kind === 'stats', shots: s.spec.shots || [], mark: s.spec.mark,
+                 boxes: []};
+    chapters.push(s.chapter);
+  });
+  await Promise.all(chapters.map(async c => {
+    for (const shot of c.shots) shot.img = await image(shot.src);
+    if (c.spec.stage === 'terminal') c.lines = c.spec.lines
+      || (await (await fetch(c.spec.src, {cache: 'no-store'})).text()).replace(/\n$/, '').split('\n');
+  }));
+  await document.fonts.ready;
+
+  chapters.forEach(() => $('track').append(el('div', 'pip')));
+  const build = {hook: hookScene, title: titleScene, chapter: chapterScene, stats: statsScene, end: endScene};
+  segs.forEach(s => { s.draw = build[s.kind](s, s.spec, plan); });
+  const first = segs[0], last = segs[segs.length - 1];
+  const of = kind => segs.filter(s => s.kind === kind);
+  draw = () => {
+    $('prog').style.width = (T / TOTAL * W) + 'px';
+    ['hook', 'title', 'end'].forEach(kind => of(kind).forEach(s => {
+      $(kind).style.opacity = win(s, s === first, s === last); s.draw(); }));
+    of('stats').forEach(s => s.draw());
+    const now = of('chapter').find(s => T >= s.s && T < s.e);
+    $('main').style.opacity = now ? Math.min(now.chapter.first ? lin(now.s, now.s + .2) : 1,
+      segs[segs.indexOf(now) + 1]?.kind === 'chapter' ? 1 : 1 - lin(now.e - .14, now.e)) : 0;
+    chapters.forEach(c => c.boxes.forEach(x => { x.style.display = now && now.chapter === c ? '' : 'none'; }));
+    if (now) now.draw();
+    const drops = segs.filter(s => s.kind === 'title' || (s.chapter && s.chapter.drop));    // where the music drops
+    $('flash').style.opacity = Math.max(0, ...drops.map(s => T >= s.s ? (s.kind === 'title' ? .34 : .2) * (1 - lin(s.s, s.s + .3)) : 0));
+  };
+  return {frames: Math.round(TOTAL * FPS), seconds: TOTAL, warnings};
+}
+
+window.renderAt = t => { T = t; draw(); };
+window.renderFrame = f => window.renderAt(f / FPS);
+window.ready = boot().then(info => {
+  window.FRAMES = info.frames; window.TOTAL = info.seconds;
+  window.CHAPTERS = segs.filter(s => s.kind === 'chapter').map(s => [s.spec.chapter, s.s, s.e]);
+  const q = new URLSearchParams(location.search);
+  if (q.has('f')) window.renderFrame(+q.get('f'));
+  else if (q.has('t')) window.renderAt(+q.get('t'));
+  else { const t0 = performance.now() - (+q.get('start') || 0) * 1000;
+    const loop = () => { window.renderAt(((performance.now() - t0) / 1000) % TOTAL); requestAnimationFrame(loop); }; loop(); }
+  return info;
+}).catch(e => { $('err').textContent = 'The animation could not start:\n' + e.message; throw e; });
+</script>
+</body>
+</html>
